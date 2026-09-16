@@ -138,6 +138,7 @@ export default function Home() {
           setDoc(doc(db, "rounds", roundRef.id, "scores", `player-${i}-${Date.now()}`), {
             name,
             holes: {},
+            claimed: false,
           })
         )
       );

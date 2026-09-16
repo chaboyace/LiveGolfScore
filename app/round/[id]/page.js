@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { collection, doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, updateDoc, getDoc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
@@ -16,6 +16,7 @@ export default function RoundPage() {
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentHole, setCurrentHole] = useState(1);
+  const [claimError, setClaimError] = useState("");
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -43,12 +44,28 @@ export default function RoundPage() {
     return () => unsub();
   }, [id]);
 
-  function selectPlayer(playerId) {
-    window.localStorage.setItem(storageKey, playerId);
-    setMyPlayerId(playerId);
+  async function selectPlayer(playerId) {
+    setClaimError("");
+    const scoreRef = doc(db, "rounds", id, "scores", playerId);
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(scoreRef);
+        if (snap.data()?.claimed) {
+          throw new Error("already-claimed");
+        }
+        tx.update(scoreRef, { claimed: true });
+      });
+      window.localStorage.setItem(storageKey, playerId);
+      setMyPlayerId(playerId);
+    } catch (err) {
+      setClaimError("That name was just taken — pick another.");
+    }
   }
 
-  function clearPlayer() {
+  async function clearPlayer() {
+    if (myPlayerId) {
+      updateDoc(doc(db, "rounds", id, "scores", myPlayerId), { claimed: false }).catch(() => {});
+    }
     window.localStorage.removeItem(storageKey);
     setMyPlayerId(null);
   }
@@ -109,8 +126,9 @@ export default function RoundPage() {
         {!me && (
           <section className="bg-white rounded-xl border border-slate-200 p-5">
             <h2 className="font-semibold text-blue-950 mb-3">Who are you?</h2>
+            {claimError && <p className="text-red-600 text-sm mb-3">{claimError}</p>}
             <div className="grid grid-cols-2 gap-2">
-              {players.map((p) => (
+              {players.filter((p) => !p.claimed).map((p) => (
                 <button
                   key={p.id}
                   onClick={() => selectPlayer(p.id)}
@@ -120,6 +138,11 @@ export default function RoundPage() {
                 </button>
               ))}
             </div>
+            {players.every((p) => p.claimed) && (
+              <p className="text-sm text-slate-500">
+                Everyone has already claimed a name. If that's a mistake, ask them to tap &quot;Not you?&quot; to release it.
+              </p>
+            )}
           </section>
         )}
 
