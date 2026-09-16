@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// Note: this app has no login system by design (players share a round link
+// and pick their own name). These rules can't verify *who* is writing, only
+// *what* they're allowed to write, to stop malformed data, spam documents,
+// and deletion — not to prevent one player from editing another's score.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /rounds/{roundId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isValidRound(request.resource.data);
+      allow update, delete: if false;
+
+      match /scores/{scoreId} {
+        allow get, list: if true;
+        allow create: if isValidNewScore(request.resource.data);
+        allow update: if isValidScoreUpdate(resource.data, request.resource.data);
+        allow delete: if false;
+      }
+    }
+
+    function isValidRound(data) {
+      return data.keys().hasOnly(['name', 'createdAt', 'holeCount'])
+        && data.name is string
+        && data.name.size() <= 100
+        && data.holeCount == 18;
+    }
+
+    function isValidNewScore(data) {
+      return data.keys().hasOnly(['name', 'holes'])
+        && data.name is string
+        && data.name.size() <= 50
+        && data.holes is map
+        && data.holes.size() == 0;
+    }
+
+    function isValidScoreUpdate(before, after) {
+      return after.keys().hasOnly(['name', 'holes'])
+        && after.name == before.name
+        && after.holes is map
+        && after.holes.size() <= 18
+        && after.holes.keys().hasOnly(
+          ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18']
+        );
+    }
+  }
+}
