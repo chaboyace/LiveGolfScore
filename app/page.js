@@ -7,6 +7,16 @@ import { db } from "@/lib/firebase";
 
 const DEFAULT_PLAYER_COUNT = 4;
 
+function generateOfficialCode() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function defaultPars() {
+  const pars = {};
+  for (let hole = 1; hole <= 18; hole++) pars[hole] = 4;
+  return pars;
+}
+
 export default function Home() {
   const router = useRouter();
   const [roundName, setRoundName] = useState("");
@@ -34,10 +44,13 @@ export default function Home() {
 
     setCreating(true);
     try {
+      const officialCode = generateOfficialCode();
       const roundRef = await addDoc(collection(db, "rounds"), {
         name: roundName.trim() || "Golf Round",
         createdAt: serverTimestamp(),
         holeCount: 18,
+        officialCode,
+        pars: defaultPars(),
       });
 
       await Promise.all(
@@ -49,7 +62,7 @@ export default function Home() {
         )
       );
 
-      router.push(`/round/${roundRef.id}`);
+      router.push(`/round/${roundRef.id}?code=${officialCode}`);
     } catch (err) {
       console.error(err);
       setError("Could not create round. Check Firebase setup.");
@@ -73,7 +86,7 @@ export default function Home() {
               value={roundName}
               onChange={(e) => setRoundName(e.target.value)}
               placeholder="e.g. Saturday at QCC"
-              className="w-full rounded-lg border border-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
@@ -89,7 +102,7 @@ export default function Home() {
                   value={p}
                   onChange={(e) => updatePlayer(i, e.target.value)}
                   placeholder={`Player ${i + 1} name`}
-                  className="w-full rounded-lg border border-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               ))}
             </div>

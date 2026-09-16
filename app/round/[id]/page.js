@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   collection,
   doc,
@@ -13,12 +13,38 @@ import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 
-export default function RoundPage() {
+export default function RoundPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-green-50 flex items-center justify-center">
+          <p className="text-green-700">Loading round...</p>
+        </main>
+      }
+    >
+      <RoundPage />
+    </Suspense>
+  );
+}
+
+function RoundPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const newCode = searchParams.get("code");
+
   const [roundName, setRoundName] = useState("");
+  const [officialCode, setOfficialCode] = useState(null);
+  const [pars, setPars] = useState({});
   const [players, setPlayers] = useState([]);
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [showCodeEntry, setShowCodeEntry] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [parDraft, setParDraft] = useState({});
+  const [savingPars, setSavingPars] = useState(false);
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -29,7 +55,12 @@ export default function RoundPage() {
 
   useEffect(() => {
     getDoc(doc(db, "rounds", id)).then((snap) => {
-      if (snap.exists()) setRoundName(snap.data().name);
+      if (snap.exists()) {
+        const data = snap.data();
+        setRoundName(data.name);
+        setOfficialCode(data.officialCode || null);
+        setPars(data.pars || {});
+      }
     });
 
     const unsub = onSnapshot(collection(db, "rounds", id, "scores"), (snap) => {
@@ -64,6 +95,41 @@ export default function RoundPage() {
     await updateDoc(doc(db, "rounds", id, "scores", playerId), { holes: newHoles });
   }
 
+  function openCodeEntry() {
+    setShowCodeEntry(true);
+    setCodeError("");
+    setCodeInput("");
+  }
+
+  function submitCode(e) {
+    e.preventDefault();
+    if (codeInput.trim() === officialCode) {
+      setParDraft(pars);
+      setUnlocked(true);
+      setShowCodeEntry(false);
+    } else {
+      setCodeError("Wrong code.");
+    }
+  }
+
+  function updateParDraft(hole, value) {
+    const par = Math.max(3, Math.min(6, Number(value) || 4));
+    setParDraft((prev) => ({ ...prev, [hole]: par }));
+  }
+
+  async function savePars() {
+    setSavingPars(true);
+    await updateDoc(doc(db, "rounds", id), { pars: parDraft });
+    setPars(parDraft);
+    setSavingPars(false);
+    setUnlocked(false);
+  }
+
+  const totalPar = useMemo(
+    () => HOLES.reduce((sum, hole) => sum + (pars[hole] ?? 4), 0),
+    [pars]
+  );
+
   const totals = useMemo(() => {
     const map = {};
     players.forEach((p) => {
@@ -94,6 +160,14 @@ export default function RoundPage() {
           <h1 className="text-2xl font-bold text-green-900">{roundName}</h1>
           <p className="text-sm text-green-700">Share this page's link with your group.</p>
         </div>
+
+        {newCode && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 text-sm text-yellow-900">
+            Rules official code: <span className="font-bold text-lg tracking-wider">{newCode}</span>
+            <br />
+            Save this &mdash; whoever holds it can change the par for each hole.
+          </div>
+        )}
 
         {!me && (
           <section className="bg-white rounded-xl border border-green-200 p-5">
@@ -128,7 +202,8 @@ export default function RoundPage() {
             <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
               {HOLES.map((hole) => (
                 <div key={hole} className="text-center">
-                  <div className="text-xs text-green-600 mb-1">{hole}</div>
+                  <div className="text-xs text-green-600">{hole}</div>
+                  <div className="text-[10px] text-green-400 mb-1">par {pars[hole] ?? 4}</div>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -136,13 +211,14 @@ export default function RoundPage() {
                     max={15}
                     value={me.holes?.[hole] ?? ""}
                     onChange={(e) => setHoleScore(me.id, hole, e.target.value)}
-                    className="w-full text-center rounded-md border border-green-300 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full text-center rounded-md border border-green-300 bg-white py-1.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               ))}
             </div>
             <p className="mt-3 text-sm text-green-800">
               Total: <span className="font-semibold">{totals[me.id] || 0}</span>
+              <span className="text-green-500 ml-1">(par {totalPar})</span>
             </p>
           </section>
         )}
@@ -171,6 +247,83 @@ export default function RoundPage() {
               );
             })}
           </ol>
+        </section>
+
+        <section className="bg-white rounded-xl border border-green-200 p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-green-900">Hole pars</h2>
+            {!unlocked && (
+              <button
+                onClick={openCodeEntry}
+                className="text-xs text-green-600 hover:underline"
+              >
+                Rules official: edit pars
+              </button>
+            )}
+          </div>
+
+          {showCodeEntry && !unlocked && (
+            <form onSubmit={submitCode} className="mt-3 flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                placeholder="4-digit code"
+                className="rounded-md border border-green-300 bg-white px-3 py-1.5 w-32 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-green-700 text-white text-sm font-medium px-3 py-1.5 hover:bg-green-800"
+              >
+                Unlock
+              </button>
+              {codeError && <span className="text-red-600 text-xs">{codeError}</span>}
+            </form>
+          )}
+
+          <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mt-3">
+            {HOLES.map((hole) => (
+              <div key={hole} className="text-center">
+                <div className="text-xs text-green-600 mb-1">{hole}</div>
+                {unlocked ? (
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={3}
+                    max={6}
+                    value={parDraft[hole] ?? 4}
+                    onChange={(e) => updateParDraft(hole, e.target.value)}
+                    className="w-full text-center rounded-md border border-green-300 bg-white py-1.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                ) : (
+                  <div className="rounded-md border border-green-100 bg-green-50 py-1.5 text-green-800">
+                    {pars[hole] ?? 4}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {unlocked && (
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={savePars}
+                disabled={savingPars}
+                className="rounded-md bg-green-700 text-white text-sm font-medium px-4 py-2 hover:bg-green-800 disabled:opacity-50"
+              >
+                {savingPars ? "Saving..." : "Save pars"}
+              </button>
+              <button
+                onClick={() => setUnlocked(false)}
+                className="text-sm text-green-600 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </main>

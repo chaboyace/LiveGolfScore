@@ -11,7 +11,8 @@ service cloud.firestore {
       allow get: if true;
       allow list: if false;
       allow create: if isValidRound(request.resource.data);
-      allow update, delete: if false;
+      allow update: if isValidParsUpdate(resource.data, request.resource.data);
+      allow delete: if false;
 
       match /scores/{scoreId} {
         allow get, list: if true;
@@ -22,10 +23,27 @@ service cloud.firestore {
     }
 
     function isValidRound(data) {
-      return data.keys().hasOnly(['name', 'createdAt', 'holeCount'])
+      return data.keys().hasOnly(['name', 'createdAt', 'holeCount', 'officialCode', 'pars'])
         && data.name is string
         && data.name.size() <= 100
-        && data.holeCount == 18;
+        && data.holeCount == 18
+        && data.officialCode is string
+        && data.officialCode.size() == 4
+        && data.pars is map
+        && data.pars.size() == 18;
+    }
+
+    function isValidParsUpdate(before, after) {
+      return after.keys().hasOnly(['name', 'createdAt', 'holeCount', 'officialCode', 'pars'])
+        && after.name == before.name
+        && after.createdAt == before.createdAt
+        && after.holeCount == before.holeCount
+        && after.officialCode == before.officialCode
+        && after.pars is map
+        && after.pars.size() == 18
+        && after.pars.keys().hasOnly(
+          ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18']
+        );
     }
 
     function isValidNewScore(data) {
