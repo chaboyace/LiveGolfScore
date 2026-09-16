@@ -67,7 +67,7 @@ export default function RoundPage() {
   }
 
   function adjustHoleScore(delta) {
-    const current = me?.holes?.[currentHole] ?? pars[currentHole] ?? 4;
+    const current = me?.holes?.[currentHole] ?? 0;
     setHoleScore(me.id, currentHole, current + delta);
   }
 
@@ -164,7 +164,7 @@ export default function RoundPage() {
                   <div className="px-6 py-2 flex flex-col items-center justify-center border-x border-green-200 min-w-[88px]">
                     <span className="text-xs text-green-500">Score</span>
                     <span className="text-3xl font-bold text-gray-900">
-                      {me.holes?.[currentHole] ?? pars[currentHole] ?? 4}
+                      {me.holes?.[currentHole] ?? 0}
                     </span>
                   </div>
                   <button
@@ -190,7 +190,7 @@ export default function RoundPage() {
 
               <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
                 {QUICK_SCORES.map((n) => {
-                  const isSelected = (me.holes?.[currentHole] ?? pars[currentHole] ?? 4) === n;
+                  const isSelected = (me.holes?.[currentHole] ?? 0) === n;
                   return (
                     <button
                       key={n}
