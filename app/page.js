@@ -26,6 +26,13 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
+  const [courseQuery, setCourseQuery] = useState("");
+  const [courseResults, setCourseResults] = useState([]);
+  const [searchingCourse, setSearchingCourse] = useState(false);
+  const [courseSearchError, setCourseSearchError] = useState("");
+  const [loadingCourseId, setLoadingCourseId] = useState(null);
+  const [appliedCourseName, setAppliedCourseName] = useState("");
+
   function updatePlayer(index, value) {
     setPlayers((prev) => prev.map((p, i) => (i === index ? value : p)));
   }
@@ -36,6 +43,69 @@ export default function Home() {
 
   function updatePar(hole, value) {
     setPars((prev) => ({ ...prev, [hole]: value }));
+  }
+
+  async function searchCourses(e) {
+    e.preventDefault();
+    setCourseSearchError("");
+    setCourseResults([]);
+
+    if (courseQuery.trim().length < 3) {
+      setCourseSearchError("Type at least 3 characters.");
+      return;
+    }
+
+    setSearchingCourse(true);
+    try {
+      const res = await fetch(`/api/courses/search?q=${encodeURIComponent(courseQuery.trim())}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed.");
+      setCourseResults(data.courses || []);
+      if ((data.courses || []).length === 0) setCourseSearchError("No courses found.");
+    } catch (err) {
+      setCourseSearchError(err.message);
+    } finally {
+      setSearchingCourse(false);
+    }
+  }
+
+  async function applyCourse(course) {
+    setLoadingCourseId(course.id);
+    setCourseSearchError("");
+    try {
+      const res = await fetch(`/api/courses/${course.id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not load course.");
+      const courseData = data.course || data;
+
+      const teeSets = [...(courseData.tees?.male || []), ...(courseData.tees?.female || [])];
+      const tee = teeSets.find((t) => t.holes?.length === 18) || teeSets[0];
+      if (!tee || !tee.holes) {
+        throw new Error("This course doesn't have hole-by-hole par data.");
+      }
+
+      const newPars = {};
+      tee.holes.forEach((h, i) => {
+        newPars[i + 1] = String(h.par);
+      });
+      for (const hole of HOLES) if (!newPars[hole]) newPars[hole] = "4";
+
+      setPars(newPars);
+      setAppliedCourseName(
+        `${courseData.club_name}${
+          courseData.course_name && courseData.course_name !== courseData.club_name
+            ? ` — ${courseData.course_name}`
+            : ""
+        } (${tee.tee_name} tees)`
+      );
+      setCourseResults([]);
+      setCourseQuery("");
+      if (!roundName) setRoundName(courseData.club_name);
+    } catch (err) {
+      setCourseSearchError(err.message);
+    } finally {
+      setLoadingCourseId(null);
+    }
   }
 
   async function createRound(e) {
@@ -129,6 +199,65 @@ export default function Home() {
             >
               + Add another player
             </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-green-900 mb-1">
+              Find your course (optional)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={courseQuery}
+                onChange={(e) => setCourseQuery(e.target.value)}
+                placeholder="Search by course or club name"
+                className="flex-1 rounded-lg border border-green-300 bg-white px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <button
+                type="button"
+                onClick={searchCourses}
+                disabled={searchingCourse}
+                className="rounded-lg bg-green-700 text-white text-sm font-medium px-4 hover:bg-green-800 disabled:opacity-50"
+              >
+                {searchingCourse ? "Searching..." : "Search"}
+              </button>
+            </div>
+
+            {courseSearchError && (
+              <p className="text-red-600 text-sm mt-2">{courseSearchError}</p>
+            )}
+
+            {courseResults.length > 0 && (
+              <ul className="mt-2 space-y-1 border border-green-200 rounded-lg divide-y divide-green-100 overflow-hidden">
+                {courseResults.map((course) => (
+                  <li key={course.id}>
+                    <button
+                      type="button"
+                      onClick={() => applyCourse(course)}
+                      disabled={loadingCourseId === course.id}
+                      className="w-full text-left px-3 py-2 hover:bg-green-50 disabled:opacity-50"
+                    >
+                      <div className="text-gray-900 font-medium">{course.club_name}</div>
+                      {course.location?.city && (
+                        <div className="text-xs text-green-600">
+                          {course.location.city}
+                          {course.location.state ? `, ${course.location.state}` : ""}
+                        </div>
+                      )}
+                      {loadingCourseId === course.id && (
+                        <div className="text-xs text-green-500">Loading pars...</div>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {appliedCourseName && (
+              <p className="text-sm text-green-700 mt-2">
+                Pars loaded from <span className="font-medium">{appliedCourseName}</span> &mdash; adjust below if needed.
+              </p>
+            )}
           </div>
 
           <div>
