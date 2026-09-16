@@ -6,6 +6,21 @@ import { collection, doc, onSnapshot, updateDoc, getDoc, runTransaction } from "
 import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
+const FRONT_NINE = HOLES.slice(0, 9);
+const BACK_NINE = HOLES.slice(9);
+
+function sumHoles(holesLike, holeRange) {
+  let sum = 0;
+  let hasAny = false;
+  for (const hole of holeRange) {
+    const value = holesLike[hole];
+    if (value != null) {
+      sum += value;
+      hasAny = true;
+    }
+  }
+  return hasAny ? sum : null;
+}
 
 export default function RoundPage() {
   const { id } = useParams();
@@ -217,74 +232,129 @@ export default function RoundPage() {
           </section>
         )}
 
-        <section className="bg-blue-950 rounded-xl overflow-hidden">
+        <section className="bg-[#fbf7ee] rounded-xl overflow-hidden border-2 border-blue-950">
           <div className="overflow-x-auto">
             <table className="border-collapse text-sm min-w-max w-full">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-blue-950 text-left text-white px-4 py-3 border-b border-r border-blue-800 text-base font-bold">
+                  <th className="sticky left-0 bg-[#fbf7ee] text-left text-blue-950 px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold">
                     Player
                   </th>
-                  {HOLES.map((hole) => (
+                  {FRONT_NINE.map((hole) => (
                     <th
                       key={hole}
-                      className={`text-center px-3 py-3 border-b border-r border-blue-800 text-base font-bold ${
-                        hole === currentHole ? "bg-amber-700 text-white" : "text-white"
+                      className={`text-center px-3 py-3 border-b-2 border-r border-blue-950/40 text-base font-bold text-blue-950 ${
+                        hole === currentHole ? "bg-orange-300" : ""
                       }`}
                     >
                       {hole}
                       {hole === currentHole && (
-                        <div className="text-[10px] font-normal tracking-wide">Editing</div>
+                        <div className="text-[10px] font-normal tracking-wide text-orange-800">Editing</div>
                       )}
                     </th>
                   ))}
-                  <th className="text-center px-4 py-3 border-b border-blue-800 text-base font-bold text-white">
-                    Total
+                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold text-blue-950 bg-emerald-100">
+                    OUT
+                  </th>
+                  {BACK_NINE.map((hole) => (
+                    <th
+                      key={hole}
+                      className={`text-center px-3 py-3 border-b-2 border-r border-blue-950/40 text-base font-bold text-blue-950 ${
+                        hole === currentHole ? "bg-orange-300" : ""
+                      }`}
+                    >
+                      {hole}
+                      {hole === currentHole && (
+                        <div className="text-[10px] font-normal tracking-wide text-orange-800">Editing</div>
+                      )}
+                    </th>
+                  ))}
+                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold text-blue-950 bg-emerald-100">
+                    IN
+                  </th>
+                  <th className="text-center px-4 py-3 border-b-2 border-blue-950 text-base font-bold text-blue-950 bg-emerald-200">
+                    TOTAL
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="sticky left-0 bg-blue-900 text-blue-200 px-4 py-2 border-b border-r border-blue-800 font-medium">
+                <tr className="bg-blue-950/5">
+                  <td className="sticky left-0 bg-[#f2ecdd] text-blue-950 px-4 py-2 border-b-2 border-r-2 border-blue-950 font-semibold">
                     Par
                   </td>
-                  {HOLES.map((hole) => (
+                  {FRONT_NINE.map((hole) => (
                     <td
                       key={hole}
-                      className={`text-center px-3 py-2 border-b border-r border-blue-800 ${
-                        hole === currentHole ? "bg-amber-700 text-white" : "bg-blue-900 text-blue-200"
+                      className={`text-center px-3 py-2 border-b-2 border-r border-blue-950/40 text-blue-950 ${
+                        hole === currentHole ? "bg-orange-100" : ""
                       }`}
                     >
                       {pars[hole] ?? 4}
                     </td>
                   ))}
-                  <td className="text-center px-4 py-2 border-b border-blue-800 bg-blue-900 text-blue-200 font-semibold">
+                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-blue-950 bg-emerald-100 text-blue-950 font-semibold">
+                    {sumHoles(pars, FRONT_NINE)}
+                  </td>
+                  {BACK_NINE.map((hole) => (
+                    <td
+                      key={hole}
+                      className={`text-center px-3 py-2 border-b-2 border-r border-blue-950/40 text-blue-950 ${
+                        hole === currentHole ? "bg-orange-100" : ""
+                      }`}
+                    >
+                      {pars[hole] ?? 4}
+                    </td>
+                  ))}
+                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-blue-950 bg-emerald-100 text-blue-950 font-semibold">
+                    {sumHoles(pars, BACK_NINE)}
+                  </td>
+                  <td className="text-center px-4 py-2 border-b-2 border-blue-950 bg-emerald-200 text-blue-950 font-bold">
                     {totalPar}
                   </td>
                 </tr>
-                {leaderboard.map((p) => (
-                  <tr key={p.id}>
-                    <td className="sticky left-0 bg-blue-950 text-white font-bold px-4 py-3 border-b border-r border-blue-800 whitespace-nowrap">
-                      {p.name}
-                      {p.id === myPlayerId && (
-                        <div className="text-[11px] font-normal text-orange-400">You</div>
-                      )}
-                    </td>
-                    {HOLES.map((hole) => (
-                      <td
-                        key={hole}
-                        className={`text-center px-3 py-3 border-b border-r border-blue-800 text-xl font-bold ${
-                          hole === currentHole ? "bg-amber-700/40 text-white" : "text-blue-100"
-                        }`}
-                      >
-                        {p.holes?.[hole] ?? "—"}
+                {leaderboard.map((p) => {
+                  const out = sumHoles(p.holes || {}, FRONT_NINE);
+                  const inScore = sumHoles(p.holes || {}, BACK_NINE);
+                  return (
+                    <tr key={p.id} className="odd:bg-white even:bg-[#f2ecdd]/60">
+                      <td className="sticky left-0 bg-inherit text-blue-950 font-bold px-4 py-3 border-b border-r-2 border-blue-950 whitespace-nowrap">
+                        {p.name}
+                        {p.id === myPlayerId && (
+                          <div className="text-[11px] font-normal text-orange-600">You</div>
+                        )}
                       </td>
-                    ))}
-                    <td className="text-center px-4 py-3 border-b border-blue-800 text-xl font-bold text-white">
-                      {totals[p.id] || 0}
-                    </td>
-                  </tr>
-                ))}
+                      {FRONT_NINE.map((hole) => (
+                        <td
+                          key={hole}
+                          className={`text-center px-3 py-3 border-b border-r border-blue-950/20 text-xl font-bold text-blue-950 ${
+                            hole === currentHole ? "bg-orange-100" : ""
+                          }`}
+                        >
+                          {p.holes?.[hole] ?? "—"}
+                        </td>
+                      ))}
+                      <td className="text-center px-4 py-3 border-b border-r-2 border-blue-950 bg-emerald-50 text-lg font-bold text-blue-950">
+                        {out ?? "—"}
+                      </td>
+                      {BACK_NINE.map((hole) => (
+                        <td
+                          key={hole}
+                          className={`text-center px-3 py-3 border-b border-r border-blue-950/20 text-xl font-bold text-blue-950 ${
+                            hole === currentHole ? "bg-orange-100" : ""
+                          }`}
+                        >
+                          {p.holes?.[hole] ?? "—"}
+                        </td>
+                      ))}
+                      <td className="text-center px-4 py-3 border-b border-r-2 border-blue-950 bg-emerald-50 text-lg font-bold text-blue-950">
+                        {inScore ?? "—"}
+                      </td>
+                      <td className="text-center px-4 py-3 border-b border-blue-950 bg-emerald-100 text-xl font-bold text-blue-950">
+                        {totals[p.id] || 0}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
