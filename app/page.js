@@ -8,10 +8,6 @@ import { db } from "@/lib/firebase";
 const DEFAULT_PLAYER_COUNT = 4;
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 
-function generateOfficialCode() {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
-
 function initialPars() {
   const pars = {};
   for (const hole of HOLES) pars[hole] = "4";
@@ -130,12 +126,10 @@ export default function Home() {
 
     setCreating(true);
     try {
-      const officialCode = generateOfficialCode();
       const roundRef = await addDoc(collection(db, "rounds"), {
         name: roundName.trim() || "Golf Round",
         createdAt: serverTimestamp(),
         holeCount: 18,
-        officialCode,
         pars: finalPars,
       });
 
@@ -148,7 +142,7 @@ export default function Home() {
         )
       );
 
-      router.push(`/round/${roundRef.id}?code=${officialCode}`);
+      router.push(`/round/${roundRef.id}`);
     } catch (err) {
       console.error(err);
       setError("Could not create round. Check Firebase setup.");

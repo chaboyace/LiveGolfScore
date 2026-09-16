@@ -6,9 +6,9 @@ export default function Footer() {
         <ol className="list-decimal list-inside space-y-1">
           <li>Create a round and add everyone&apos;s name.</li>
           <li>Share the round link with your group &mdash; no login needed.</li>
+          <li>Set the course par for each hole when you create the round (or search for your course to auto-fill it).</li>
           <li>Each player opens the link, taps their own name, and enters their own scores as they play.</li>
           <li>Everyone sees the live leaderboard update in real time.</li>
-          <li>The rules official can use the 4-digit code shown at round creation to edit hole pars anytime.</li>
         </ol>
       </div>
     </footer>
