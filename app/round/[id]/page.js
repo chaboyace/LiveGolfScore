@@ -225,41 +225,67 @@ function RoundPage() {
 
         <section className="bg-white rounded-xl border border-green-200 p-5">
           <h2 className="font-semibold text-green-900 mb-3">Live leaderboard</h2>
-          <ol className="space-y-1">
-            {leaderboard.map((p, i) => {
-              const holesPlayed = Object.keys(p.holes || {}).length;
-              return (
-                <li
-                  key={p.id}
-                  className={`flex items-center justify-between rounded-md px-3 py-2 ${
-                    p.id === myPlayerId ? "bg-green-100" : ""
-                  }`}
-                >
-                  <span className="text-green-900">
-                    <span className="text-green-500 mr-2">{i + 1}.</span>
-                    {p.name}
-                  </span>
-                  <span className="text-green-800 text-sm">
-                    {totals[p.id] || 0}
-                    <span className="text-green-500 ml-1">({holesPlayed}/18)</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          <div className="overflow-x-auto">
+            <table className="border-collapse text-sm min-w-max">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-white text-left text-green-900 px-3 py-2 border-b border-green-200">
+                    Players
+                  </th>
+                  {HOLES.map((hole) => (
+                    <th
+                      key={hole}
+                      className="text-center px-2 py-1 border-b border-green-200 bg-yellow-100/60"
+                    >
+                      <div className="text-[10px] text-yellow-800">Par {pars[hole] ?? 4}</div>
+                      <div className="text-green-900 font-semibold">Hole {hole}</div>
+                    </th>
+                  ))}
+                  <th className="text-center px-3 py-2 border-b border-green-200">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((p) => (
+                  <tr
+                    key={p.id}
+                    className={p.id === myPlayerId ? "bg-green-100" : ""}
+                  >
+                    <td className="sticky left-0 bg-inherit text-green-900 font-medium px-3 py-2 border-b border-green-100 whitespace-nowrap">
+                      {p.name}
+                    </td>
+                    {HOLES.map((hole) => (
+                      <td
+                        key={hole}
+                        className="text-center px-2 py-2 border-b border-green-100 text-green-800"
+                      >
+                        {p.holes?.[hole] ?? ""}
+                      </td>
+                    ))}
+                    <td className="text-center px-3 py-2 border-b border-green-100 font-semibold text-green-900">
+                      {totals[p.id] || 0}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="bg-white rounded-xl border border-green-200 p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-green-900">Hole pars</h2>
-            {!unlocked && (
-              <button
-                onClick={openCodeEntry}
-                className="text-xs text-green-600 hover:underline"
-              >
-                Rules official: edit pars
-              </button>
-            )}
+            <button
+              onClick={unlocked ? () => setUnlocked(false) : openCodeEntry}
+              title={unlocked ? "Lock pars" : "Unlock to edit pars"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${
+                unlocked
+                  ? "bg-green-700 text-white hover:bg-green-800"
+                  : "bg-green-50 text-green-700 border border-green-300 hover:bg-green-100"
+              }`}
+            >
+              <span aria-hidden="true">{unlocked ? "🔓" : "🔒"}</span>
+              {unlocked ? "Unlocked" : "Rules official"}
+            </button>
           </div>
 
           {showCodeEntry && !unlocked && (

@@ -6,14 +6,15 @@ import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/fires
 import { db } from "@/lib/firebase";
 
 const DEFAULT_PLAYER_COUNT = 4;
+const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 
 function generateOfficialCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-function defaultPars() {
+function initialPars() {
   const pars = {};
-  for (let hole = 1; hole <= 18; hole++) pars[hole] = 4;
+  for (const hole of HOLES) pars[hole] = "4";
   return pars;
 }
 
@@ -21,6 +22,7 @@ export default function Home() {
   const router = useRouter();
   const [roundName, setRoundName] = useState("");
   const [players, setPlayers] = useState(Array(DEFAULT_PLAYER_COUNT).fill(""));
+  const [pars, setPars] = useState(initialPars());
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,6 +32,10 @@ export default function Home() {
 
   function addPlayerField() {
     setPlayers((prev) => [...prev, ""]);
+  }
+
+  function updatePar(hole, value) {
+    setPars((prev) => ({ ...prev, [hole]: value }));
   }
 
   async function createRound(e) {
@@ -42,6 +48,16 @@ export default function Home() {
       return;
     }
 
+    const finalPars = {};
+    for (const hole of HOLES) {
+      const value = Number(pars[hole]);
+      if (!Number.isInteger(value) || value < 3 || value > 6) {
+        setError(`Enter a valid par (3-6) for hole ${hole} before sharing the round.`);
+        return;
+      }
+      finalPars[hole] = value;
+    }
+
     setCreating(true);
     try {
       const officialCode = generateOfficialCode();
@@ -50,7 +66,7 @@ export default function Home() {
         createdAt: serverTimestamp(),
         holeCount: 18,
         officialCode,
-        pars: defaultPars(),
+        pars: finalPars,
       });
 
       await Promise.all(
@@ -72,11 +88,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-green-50 flex justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
         <h1 className="text-3xl font-bold text-green-900 mb-1">LiveGolfScore</h1>
         <p className="text-green-700 mb-8">Create a round and share the link with your group.</p>
 
-        <form onSubmit={createRound} className="space-y-4">
+        <form onSubmit={createRound} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-green-900 mb-1">
               Round name
@@ -113,6 +129,28 @@ export default function Home() {
             >
               + Add another player
             </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-green-900 mb-1">
+              Course par (required before you can share the round)
+            </label>
+            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mt-2">
+              {HOLES.map((hole) => (
+                <div key={hole} className="text-center">
+                  <div className="text-xs text-green-600 mb-1">{hole}</div>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={3}
+                    max={6}
+                    value={pars[hole]}
+                    onChange={(e) => updatePar(hole, e.target.value)}
+                    className="w-full text-center rounded-md border border-green-300 bg-white py-1.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
