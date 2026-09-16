@@ -217,45 +217,70 @@ export default function RoundPage() {
           </section>
         )}
 
-        <section className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-semibold text-blue-950 mb-3">Live leaderboard</h2>
+        <section className="bg-blue-950 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="border-collapse text-sm min-w-max">
+            <table className="border-collapse text-sm min-w-max w-full">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white text-left text-blue-950 px-3 py-2 border-b border-slate-200">
-                    Players
+                  <th className="sticky left-0 bg-blue-950 text-left text-white px-4 py-3 border-b border-r border-blue-800 text-base font-bold">
+                    Player
                   </th>
                   {HOLES.map((hole) => (
                     <th
                       key={hole}
-                      className="text-center px-2 py-1 border-b border-slate-200 bg-amber-100/60"
+                      className={`text-center px-3 py-3 border-b border-r border-blue-800 text-base font-bold ${
+                        hole === currentHole ? "bg-amber-700 text-white" : "text-white"
+                      }`}
                     >
-                      <div className="text-[10px] text-orange-700">Par {pars[hole] ?? 4}</div>
-                      <div className="text-blue-950 font-semibold">Hole {hole}</div>
+                      {hole}
+                      {hole === currentHole && (
+                        <div className="text-[10px] font-normal tracking-wide">Editing</div>
+                      )}
                     </th>
                   ))}
-                  <th className="text-center px-3 py-2 border-b border-slate-200">Total</th>
+                  <th className="text-center px-4 py-3 border-b border-blue-800 text-base font-bold text-white">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody>
+                <tr>
+                  <td className="sticky left-0 bg-blue-900 text-blue-200 px-4 py-2 border-b border-r border-blue-800 font-medium">
+                    Par
+                  </td>
+                  {HOLES.map((hole) => (
+                    <td
+                      key={hole}
+                      className={`text-center px-3 py-2 border-b border-r border-blue-800 ${
+                        hole === currentHole ? "bg-amber-700 text-white" : "bg-blue-900 text-blue-200"
+                      }`}
+                    >
+                      {pars[hole] ?? 4}
+                    </td>
+                  ))}
+                  <td className="text-center px-4 py-2 border-b border-blue-800 bg-blue-900 text-blue-200 font-semibold">
+                    {totalPar}
+                  </td>
+                </tr>
                 {leaderboard.map((p) => (
-                  <tr
-                    key={p.id}
-                    className={p.id === myPlayerId ? "bg-blue-50" : ""}
-                  >
-                    <td className="sticky left-0 bg-inherit text-blue-950 font-medium px-3 py-2 border-b border-slate-100 whitespace-nowrap">
+                  <tr key={p.id}>
+                    <td className="sticky left-0 bg-blue-950 text-white font-bold px-4 py-3 border-b border-r border-blue-800 whitespace-nowrap">
                       {p.name}
+                      {p.id === myPlayerId && (
+                        <div className="text-[11px] font-normal text-orange-400">You</div>
+                      )}
                     </td>
                     {HOLES.map((hole) => (
                       <td
                         key={hole}
-                        className="text-center px-2 py-2 border-b border-slate-100 text-slate-700"
+                        className={`text-center px-3 py-3 border-b border-r border-blue-800 text-xl font-bold ${
+                          hole === currentHole ? "bg-amber-700/40 text-white" : "text-blue-100"
+                        }`}
                       >
-                        {p.holes?.[hole] ?? ""}
+                        {p.holes?.[hole] ?? "—"}
                       </td>
                     ))}
-                    <td className="text-center px-3 py-2 border-b border-slate-100 font-semibold text-blue-950">
+                    <td className="text-center px-4 py-3 border-b border-blue-800 text-xl font-bold text-white">
                       {totals[p.id] || 0}
                     </td>
                   </tr>
