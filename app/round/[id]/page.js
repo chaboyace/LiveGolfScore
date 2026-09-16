@@ -6,7 +6,6 @@ import { collection, doc, onSnapshot, updateDoc, getDoc } from "firebase/firesto
 import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
-const QUICK_SCORES = Array.from({ length: 9 }, (_, i) => i + 1);
 
 export default function RoundPage() {
   const { id } = useParams();
@@ -21,8 +20,8 @@ export default function RoundPage() {
   const storageKey = `livegolfscore:${id}:playerId`;
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
-    if (saved) setMyPlayerId(saved);
+    setMyPlayerId(window.localStorage.getItem(storageKey));
+    setCurrentHole(1);
   }, [storageKey]);
 
   useEffect(() => {
@@ -186,26 +185,6 @@ export default function RoundPage() {
                 >
                   ›
                 </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-                {QUICK_SCORES.map((n) => {
-                  const isSelected = (me.holes?.[currentHole] ?? 0) === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setHoleScore(me.id, currentHole, n)}
-                      className={`w-10 h-10 rounded-full font-semibold flex items-center justify-center ${
-                        isSelected
-                          ? "bg-green-700 text-white"
-                          : "bg-green-50 text-green-800 border border-green-300 hover:bg-green-100"
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
               </div>
             </div>
             <p className="mt-4 text-sm text-green-800 text-center">
