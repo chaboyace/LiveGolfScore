@@ -8,6 +8,24 @@ import { db } from "@/lib/firebase";
 const DEFAULT_PLAYER_COUNT = 4;
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 
+const TEE_DOT_COLORS = {
+  black: "#111111",
+  blue: "#2a4163",
+  white: "#ffffff",
+  gold: "#c9a227",
+  yellow: "#e8c93a",
+  green: "#3f6b3f",
+  red: "#521515",
+  silver: "#a8a8a8",
+  tips: "#111111",
+  championship: "#111111",
+};
+
+function teeDotColor(teeName) {
+  const key = teeName.toLowerCase().split(/[\s/]/)[0];
+  return TEE_DOT_COLORS[key] || "#8a97a8";
+}
+
 function initialPars() {
   const pars = {};
   for (const hole of HOLES) pars[hole] = "4";
@@ -36,6 +54,8 @@ export default function Home() {
   const [courseSearchError, setCourseSearchError] = useState("");
   const [loadingCourseId, setLoadingCourseId] = useState(null);
   const [appliedCourseName, setAppliedCourseName] = useState("");
+  const [teeChoices, setTeeChoices] = useState(null);
+  const [pendingCourse, setPendingCourse] = useState(null);
 
   function updatePlayer(index, value) {
     setPlayers((prev) => prev.map((p, i) => (i === index ? value : p)));
@@ -77,7 +97,7 @@ export default function Home() {
     }
   }
 
-  async function applyCourse(course) {
+  async function loadCourseTees(course) {
     setLoadingCourseId(course.id);
     setCourseSearchError("");
     try {
@@ -86,47 +106,61 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || "Could not load course.");
       const courseData = data.course || data;
 
-      const teeSets = [...(courseData.tees?.male || []), ...(courseData.tees?.female || [])];
-      const tee = teeSets.find((t) => t.holes?.length === 18) || teeSets[0];
-      if (!tee || !tee.holes) {
+      const seen = new Map();
+      for (const gender of ["male", "female"]) {
+        for (const tee of courseData.tees?.[gender] || []) {
+          if (tee.holes?.length !== 18) continue;
+          const key = `${tee.tee_name}-${tee.total_yards}`;
+          if (!seen.has(key)) seen.set(key, tee);
+        }
+      }
+      const options = [...seen.values()].sort((a, b) => b.total_yards - a.total_yards);
+      if (options.length === 0) {
         throw new Error("This course doesn't have hole-by-hole par data.");
       }
 
-      const newPars = {};
-      const newYardages = {};
-      let hasYardage = false;
-      tee.holes.forEach((h, i) => {
-        newPars[i + 1] = String(h.par);
-        if (h.yardage != null) {
-          newYardages[i + 1] = String(h.yardage);
-          hasYardage = true;
-        }
-      });
-      for (const hole of HOLES) {
-        if (!newPars[hole]) newPars[hole] = "4";
-        if (!newYardages[hole]) newYardages[hole] = "";
-      }
-
-      setPars(newPars);
-      if (hasYardage) {
-        setYardages(newYardages);
-        setTrackYardage(true);
-      }
-      setAppliedCourseName(
-        `${courseData.club_name}${
-          courseData.course_name && courseData.course_name !== courseData.club_name
-            ? ` — ${courseData.course_name}`
-            : ""
-        } (${tee.tee_name} tees)`
-      );
+      setPendingCourse(courseData);
+      setTeeChoices(options);
       setCourseResults([]);
-      setCourseQuery("");
-      if (!roundName) setRoundName(courseData.club_name);
     } catch (err) {
       setCourseSearchError(err.message);
     } finally {
       setLoadingCourseId(null);
     }
+  }
+
+  function chooseTee(tee) {
+    const newPars = {};
+    const newYardages = {};
+    let hasYardage = false;
+    tee.holes.forEach((h, i) => {
+      newPars[i + 1] = String(h.par);
+      if (h.yardage != null) {
+        newYardages[i + 1] = String(h.yardage);
+        hasYardage = true;
+      }
+    });
+    for (const hole of HOLES) {
+      if (!newPars[hole]) newPars[hole] = "4";
+      if (!newYardages[hole]) newYardages[hole] = "";
+    }
+
+    setPars(newPars);
+    if (hasYardage) {
+      setYardages(newYardages);
+      setTrackYardage(true);
+    }
+    setAppliedCourseName(
+      `${pendingCourse.club_name}${
+        pendingCourse.course_name && pendingCourse.course_name !== pendingCourse.club_name
+          ? ` — ${pendingCourse.course_name}`
+          : ""
+      } (${tee.tee_name} tees)`
+    );
+    if (!roundName) setRoundName(pendingCourse.club_name);
+    setTeeChoices(null);
+    setPendingCourse(null);
+    setCourseQuery("");
   }
 
   async function createRound(e) {
@@ -379,7 +413,7 @@ export default function Home() {
                     <li key={course.id}>
                       <button
                         type="button"
-                        onClick={() => applyCourse(course)}
+                        onClick={() => loadCourseTees(course)}
                         disabled={loadingCourseId === course.id}
                         className="w-full text-left px-3 py-2 hover:bg-orange-50 disabled:opacity-50"
                       >
@@ -391,12 +425,52 @@ export default function Home() {
                           </div>
                         )}
                         {loadingCourseId === course.id && (
-                          <div className="text-xs text-[#bc4d00]">Loading pars...</div>
+                          <div className="text-xs text-[#bc4d00]">Loading tees...</div>
                         )}
                       </button>
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {teeChoices && pendingCourse && (
+                <div className="mt-2 border border-[#e1e8ec] rounded-lg p-3">
+                  <p className="text-sm font-medium text-[#111d49] mb-2">
+                    Which tees will you play from at {pendingCourse.club_name}?
+                  </p>
+                  <ul className="space-y-1">
+                    {teeChoices.map((tee) => (
+                      <li key={`${tee.tee_name}-${tee.total_yards}`}>
+                        <button
+                          type="button"
+                          onClick={() => chooseTee(tee)}
+                          className="w-full flex items-center justify-between gap-2 rounded-md border border-[#e1e8ec] px-3 py-2 hover:bg-orange-50 text-left"
+                        >
+                          <span className="flex items-center gap-2 text-[#111d49] font-medium">
+                            <span
+                              className="w-3 h-3 rounded-full border border-[#ccd7e3] inline-block"
+                              style={{ backgroundColor: teeDotColor(tee.tee_name) }}
+                            />
+                            {tee.tee_name}
+                          </span>
+                          <span className="text-xs text-[#536681]">
+                            {tee.total_yards.toLocaleString()} yds &middot; par {tee.par_total}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeeChoices(null);
+                      setPendingCourse(null);
+                    }}
+                    className="mt-2 text-xs text-[#536681] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
               )}
 
               {appliedCourseName && (
