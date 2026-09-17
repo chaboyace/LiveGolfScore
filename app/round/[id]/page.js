@@ -149,7 +149,39 @@ export default function RoundPage() {
     [players, totals]
   );
 
+  const redPlayers = useMemo(() => players.filter((p) => p.teamColor === "red"), [players]);
+  const bluePlayers = useMemo(() => players.filter((p) => p.teamColor === "blue"), [players]);
+  const hasMatch = redPlayers.length > 0 && bluePlayers.length > 0;
+
+  const holeWinners = useMemo(() => {
+    if (!hasMatch) return {};
+    const result = {};
+    for (const hole of HOLES) {
+      const redComplete = redPlayers.every((p) => p.holes?.[hole] != null);
+      const blueComplete = bluePlayers.every((p) => p.holes?.[hole] != null);
+      if (!redComplete || !blueComplete) continue;
+      const redSum = redPlayers.reduce((sum, p) => sum + p.holes[hole], 0);
+      const blueSum = bluePlayers.reduce((sum, p) => sum + p.holes[hole], 0);
+      result[hole] = redSum < blueSum ? "red" : blueSum < redSum ? "blue" : "tie";
+    }
+    return result;
+  }, [hasMatch, redPlayers, bluePlayers]);
+
+  const matchTally = useMemo(() => {
+    const tally = { red: 0, blue: 0, tie: 0 };
+    Object.values(holeWinners).forEach((w) => tally[w]++);
+    return tally;
+  }, [holeWinners]);
+
   const me = players.find((p) => p.id === myPlayerId);
+
+  function HoleWinnerDot({ hole }) {
+    if (!hasMatch) return null;
+    const winner = holeWinners[hole];
+    const dotColor =
+      winner === "red" ? "bg-[#521515]" : winner === "blue" ? "bg-[#2a4163]" : winner === "tie" ? "bg-slate-400" : "bg-transparent";
+    return <div className={`mx-auto mt-1 w-2.5 h-2.5 rounded-full ${dotColor}`} />;
+  }
 
   if (loading) {
     return (
@@ -314,6 +346,20 @@ export default function RoundPage() {
           </section>
         )}
 
+        {hasMatch && (
+          <section className="bg-white rounded-xl border-2 border-[#060f1e] px-5 py-3 flex items-center justify-center gap-4">
+            <span className="rounded-full bg-[#521515] text-white text-sm font-bold px-4 py-1.5">
+              RED {matchTally.red}
+            </span>
+            {matchTally.tie > 0 && (
+              <span className="text-xs text-slate-500">{matchTally.tie} halved</span>
+            )}
+            <span className="rounded-full bg-[#2a4163] text-white text-sm font-bold px-4 py-1.5">
+              BLUE {matchTally.blue}
+            </span>
+          </section>
+        )}
+
         <section className="bg-white rounded-xl overflow-hidden border-2 border-[#060f1e]">
           <div className="overflow-x-auto">
             <table className="border-collapse text-sm min-w-max w-full">
@@ -333,6 +379,7 @@ export default function RoundPage() {
                       {hole === currentHole && (
                         <div className="text-[10px] font-normal tracking-wide text-blue-950">Editing</div>
                       )}
+                      <HoleWinnerDot hole={hole} />
                     </th>
                   ))}
                   <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
@@ -349,6 +396,7 @@ export default function RoundPage() {
                       {hole === currentHole && (
                         <div className="text-[10px] font-normal tracking-wide text-blue-950">Editing</div>
                       )}
+                      <HoleWinnerDot hole={hole} />
                     </th>
                   ))}
                   <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
