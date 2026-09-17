@@ -31,23 +31,26 @@ service cloud.firestore {
     }
 
     function isValidNewScore(data) {
-      return data.keys().hasOnly(['name', 'holes', 'claimed'])
+      return data.keys().hasOnly(['name', 'holes', 'code'])
         && data.name is string
         && data.name.size() <= 50
         && data.holes is map
         && data.holes.size() == 0
-        && data.claimed == false;
+        && data.code == null;
     }
 
     function isValidScoreUpdate(before, after) {
-      return after.keys().hasOnly(['name', 'holes', 'claimed'])
+      return after.keys().hasOnly(['name', 'holes', 'code'])
         && after.name == before.name
         && after.holes is map
         && after.holes.size() <= 18
         && after.holes.keys().hasOnly(
           ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18']
         )
-        && after.claimed is bool;
+        && (
+          after.code == before.code
+          || (before.code == null && after.code is string && after.code.size() == 4)
+        );
     }
   }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { collection, doc, onSnapshot, updateDoc, getDoc, runTransaction } from "firebase/firestore";
+import { collection, doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
@@ -31,7 +31,9 @@ export default function RoundPage() {
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentHole, setCurrentHole] = useState(1);
-  const [claimError, setClaimError] = useState("");
+  const [codeModalPlayer, setCodeModalPlayer] = useState(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeModalError, setCodeModalError] = useState("");
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -59,28 +61,44 @@ export default function RoundPage() {
     return () => unsub();
   }, [id]);
 
-  async function selectPlayer(playerId) {
-    setClaimError("");
-    const scoreRef = doc(db, "rounds", id, "scores", playerId);
+  function openCodeModal(player) {
+    setCodeModalPlayer(player);
+    setCodeInput("");
+    setCodeModalError("");
+  }
+
+  function logInLocally(playerId) {
+    window.localStorage.setItem(storageKey, playerId);
+    setMyPlayerId(playerId);
+    setCodeModalPlayer(null);
+  }
+
+  async function submitCode(e) {
+    e.preventDefault();
+    const code = codeInput.trim();
+    if (!/^\d{4}$/.test(code)) {
+      setCodeModalError("Enter a 4-digit code.");
+      return;
+    }
+
+    if (codeModalPlayer.code) {
+      if (code === codeModalPlayer.code) {
+        logInLocally(codeModalPlayer.id);
+      } else {
+        setCodeModalError("Wrong code.");
+      }
+      return;
+    }
+
     try {
-      await runTransaction(db, async (tx) => {
-        const snap = await tx.get(scoreRef);
-        if (snap.data()?.claimed) {
-          throw new Error("already-claimed");
-        }
-        tx.update(scoreRef, { claimed: true });
-      });
-      window.localStorage.setItem(storageKey, playerId);
-      setMyPlayerId(playerId);
+      await updateDoc(doc(db, "rounds", id, "scores", codeModalPlayer.id), { code });
+      logInLocally(codeModalPlayer.id);
     } catch (err) {
-      setClaimError("That name was just taken — pick another.");
+      setCodeModalError("Someone just set a code for this name — refresh and enter it instead.");
     }
   }
 
-  async function clearPlayer() {
-    if (myPlayerId) {
-      updateDoc(doc(db, "rounds", id, "scores", myPlayerId), { claimed: false }).catch(() => {});
-    }
+  function clearPlayer() {
     window.localStorage.removeItem(storageKey);
     setMyPlayerId(null);
   }
@@ -141,22 +159,57 @@ export default function RoundPage() {
         {!me && (
           <section className="bg-white rounded-xl border border-slate-200 p-5">
             <h2 className="font-semibold text-blue-950 mb-3">Who are you?</h2>
-            {claimError && <p className="text-red-600 text-sm mb-3">{claimError}</p>}
             <div className="grid grid-cols-2 gap-2">
-              {players.filter((p) => !p.claimed).map((p) => (
+              {players.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => selectPlayer(p.id)}
+                  onClick={() => openCodeModal(p)}
                   className="rounded-lg border border-slate-300 py-2 px-3 text-left hover:bg-orange-50 font-medium text-blue-950"
                 >
                   {p.name}
                 </button>
               ))}
             </div>
-            {players.every((p) => p.claimed) && (
-              <p className="text-sm text-slate-500">
-                Everyone has already claimed a name. If that's a mistake, ask them to tap &quot;Not you?&quot; to release it.
-              </p>
+
+            {codeModalPlayer && (
+              <form onSubmit={submitCode} className="mt-4 pt-4 border-t border-slate-200">
+                <p className="text-sm font-medium text-blue-950 mb-2">
+                  {codeModalPlayer.code
+                    ? `Enter ${codeModalPlayer.name}'s 4-digit code`
+                    : `Set a 4-digit code for ${codeModalPlayer.name}`}
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    placeholder="1234"
+                    autoFocus
+                    className="rounded-md border border-slate-300 bg-white px-3 py-1.5 w-24 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-md bg-orange-500 text-white text-sm font-medium px-4 py-1.5 hover:bg-orange-600"
+                  >
+                    {codeModalPlayer.code ? "Enter" : "Set code"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCodeModalPlayer(null)}
+                    className="text-sm text-slate-500 hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {codeModalError && <p className="text-red-600 text-sm mt-2">{codeModalError}</p>}
+                {!codeModalPlayer.code && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    Remember this code &mdash; you'll need it to get back into your scorecard later.
+                  </p>
+                )}
+              </form>
             )}
           </section>
         )}
