@@ -185,7 +185,7 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-3 sm:pt-4 pb-16 sm:pb-40">
+        <section className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-3 sm:pt-4 pb-24 sm:pb-40">
           <div className="relative z-10 max-w-md">
             <p className="text-[10px] sm:text-[11px] font-bold tracking-[3px] uppercase text-[#215d43] mb-3 sm:mb-4">
               Less admin. More golf.
@@ -257,7 +257,7 @@ export default function Home() {
         </section>
       </div>
 
-      <div className="relative max-w-2xl mx-auto px-4 -mt-20 sm:-mt-28 pb-14">
+      <div className="relative max-w-2xl mx-auto px-4 -mt-14 sm:-mt-28 pb-14">
         <div className="bg-white border border-[#e1e8ec] rounded-[22px] shadow-2xl px-6 sm:px-11 pt-9 pb-8">
           <p className="text-[10px] font-bold tracking-[1.7px] uppercase text-[#215d43] mb-2">
             Less admin. More golf.
