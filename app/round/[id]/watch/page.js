@@ -108,16 +108,16 @@ export default function WatchPage() {
 
   return (
     <main className="min-h-screen bg-[#faf8f1]">
-      <div className="relative">
+      <div className="relative min-h-[280px] sm:min-h-[515px]">
         <div
-          className="absolute inset-x-0 top-0 h-[280px] sm:hidden bg-cover bg-top bg-no-repeat"
+          className="absolute inset-0 sm:hidden bg-cover bg-top bg-no-repeat"
           style={{
             backgroundImage:
               "linear-gradient(to bottom, transparent 30%, #faf8f1 92%), url('/round-hero.png')",
           }}
         />
         <div
-          className="absolute inset-x-0 top-0 h-[515px] hidden sm:block bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 hidden sm:block bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage:
               "linear-gradient(to bottom, transparent 68%, #faf8f1 100%), url('/round-hero.png')",
