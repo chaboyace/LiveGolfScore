@@ -9,10 +9,16 @@ const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 const FRONT_NINE = HOLES.slice(0, 9);
 const BACK_NINE = HOLES.slice(9);
 
-const TEAM_COLORS = {
-  white: { bg: "bg-white", text: "text-blue-950", swatch: "bg-white border border-slate-400" },
-  red: { bg: "bg-[#521515]", text: "text-white", swatch: "bg-[#521515]" },
-  blue: { bg: "bg-[#2a4163]", text: "text-white", swatch: "bg-[#2a4163]" },
+const TEAM_DOT = {
+  white: "border border-slate-400 bg-white",
+  red: "bg-[#521515]",
+  blue: "bg-[#2a4163]",
+};
+
+const TEAM_SWATCH = {
+  white: "bg-white border border-slate-400",
+  red: "bg-[#521515]",
+  blue: "bg-[#2a4163]",
 };
 
 function sumHoles(holesLike, holeRange) {
@@ -38,10 +44,12 @@ export default function RoundPage() {
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentHole, setCurrentHole] = useState(1);
+  const [nine, setNine] = useState(0);
   const [codeModalPlayer, setCodeModalPlayer] = useState(null);
   const [codeInput, setCodeInput] = useState("");
   const [codeModalError, setCodeModalError] = useState("");
   const [selectedColor, setSelectedColor] = useState("white");
+  const [shareStatus, setShareStatus] = useState("");
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -133,6 +141,21 @@ export default function RoundPage() {
     setHoleScore(me.id, currentHole, current + delta);
   }
 
+  function goToHole(hole) {
+    setCurrentHole(hole);
+    setNine(hole > 9 ? 1 : 0);
+  }
+
+  async function copyRoundLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareStatus("Round link copied — send it to your group.");
+    } catch {
+      setShareStatus("Could not copy automatically — copy the address bar instead.");
+    }
+    setTimeout(() => setShareStatus(""), 4000);
+  }
+
   const totalPar = useMemo(
     () => HOLES.reduce((sum, hole) => sum + (pars[hole] ?? 4), 0),
     [pars]
@@ -182,40 +205,92 @@ export default function RoundPage() {
   }, [holeWinners]);
 
   const me = players.find((p) => p.id === myPlayerId);
+  const visibleHoles = nine === 0 ? FRONT_NINE : BACK_NINE;
 
   function HoleWinnerDot({ hole }) {
     if (!hasMatch) return null;
     const winner = holeWinners[hole];
     const dotColor =
       winner === "red" ? "bg-[#521515]" : winner === "blue" ? "bg-[#2a4163]" : winner === "tie" ? "bg-slate-400" : "bg-transparent";
-    return <div className={`mx-auto mt-1 w-2.5 h-2.5 rounded-full ${dotColor}`} />;
+    return <div className={`mx-auto mt-1 w-2 h-2 rounded-full ${dotColor}`} />;
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-600">Loading round...</p>
+      <main className="min-h-screen bg-[#faf8f1] flex items-center justify-center">
+        <p className="text-[#647895]">Loading round...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-950">{roundName}</h1>
-          <p className="text-sm text-slate-600">Share this page's link with your group.</p>
-        </div>
+    <main className="min-h-screen bg-[#faf8f1]">
+      <div className="relative">
+        <div
+          className="absolute inset-x-0 top-0 h-[260px] sm:hidden bg-cover bg-top bg-no-repeat"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, transparent 30%, #faf8f1 92%), url('/round-hero.png')",
+          }}
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-[475px] hidden sm:block bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, transparent 68%, #faf8f1 100%), url('/round-hero.png')",
+          }}
+        />
 
+        <header className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-6 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xl sm:text-2xl font-extrabold text-[#071d49] tracking-tight">
+            <svg viewBox="0 0 48 48" className="w-8 h-8 sm:w-10 sm:h-10" aria-hidden="true">
+              <ellipse cx="23" cy="40" rx="21" ry="6" fill="#659347" />
+              <path d="M23 6v34" stroke="#152342" strokeWidth="3" />
+              <path d="M25 7c9-2 10 7 21 4l-5 13c-8 2-10-6-16-4z" fill="#ff6b00" />
+            </svg>
+            LiveGolfScore
+          </div>
+          <span className="flex items-center gap-2 rounded-full border border-[#afcfb8] bg-[#dcebdc] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0e6137]">
+            <i className="w-2.5 h-2.5 rounded-full bg-[#118545] inline-block" />
+            Round in progress
+          </span>
+        </header>
+
+        <section className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-2 pb-12 sm:pb-20">
+          <p className="text-[11px] font-bold uppercase tracking-[2px] text-[#e44e00] mb-1">
+            Good company. Great rounds.
+          </p>
+          <h1 className="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-[#071d49] mb-1">
+            {roundName}
+          </h1>
+          <p className="font-serif text-lg sm:text-xl font-bold text-[#071d49] mb-5">
+            Every shot. All together.
+          </p>
+          <button
+            onClick={copyRoundLink}
+            className="inline-flex items-center gap-2 rounded-full bg-[#fc5b08] text-white font-semibold px-5 py-2.5 hover:bg-[#df4c00] transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="m10 13 4-4m-6 6-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m2 3 2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" />
+            </svg>
+            Copy round link
+          </button>
+          {shareStatus && (
+            <p className="text-xs text-[#647895] mt-2 max-w-xs">{shareStatus}</p>
+          )}
+        </section>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 pb-14 space-y-6">
         {!me && (
-          <section className="bg-white rounded-xl border border-slate-200 p-5">
-            <h2 className="font-semibold text-blue-950 mb-3">Who are you?</h2>
+          <section className="bg-white rounded-2xl border border-[#dce1e5] p-5 shadow-sm">
+            <h2 className="font-semibold text-[#071d49] mb-3">Who are you?</h2>
             <div className="grid grid-cols-2 gap-2">
               {players.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => openCodeModal(p)}
-                  className="rounded-lg border border-slate-300 py-2 px-3 text-left hover:bg-orange-50 font-medium text-blue-950"
+                  className="rounded-lg border border-[#dce1e5] py-2 px-3 text-left hover:bg-orange-50 font-medium text-[#071d49]"
                 >
                   {p.name}
                 </button>
@@ -223,24 +298,24 @@ export default function RoundPage() {
             </div>
 
             {codeModalPlayer && (
-              <form onSubmit={submitCode} className="mt-4 pt-4 border-t border-slate-200">
-                <p className="text-sm font-medium text-blue-950 mb-2">
+              <form onSubmit={submitCode} className="mt-4 pt-4 border-t border-[#dce1e5]">
+                <p className="text-sm font-medium text-[#071d49] mb-2">
                   {codeModalPlayer.code
                     ? `Enter ${codeModalPlayer.name}'s 4-digit code`
                     : `Set a 4-digit code for ${codeModalPlayer.name}`}
                 </p>
                 {!codeModalPlayer.code && (
                   <div className="mb-3">
-                    <p className="text-xs text-slate-500 mb-1">Pick a team color</p>
+                    <p className="text-xs text-[#647895] mb-1">Pick a team color</p>
                     <div className="flex gap-2">
-                      {Object.entries(TEAM_COLORS).map(([key, { swatch }]) => (
+                      {Object.entries(TEAM_SWATCH).map(([key, swatch]) => (
                         <button
                           key={key}
                           type="button"
                           onClick={() => setSelectedColor(key)}
                           aria-label={key}
                           className={`w-8 h-8 rounded-full ${swatch} ${
-                            selectedColor === key ? "ring-2 ring-offset-2 ring-orange-500" : ""
+                            selectedColor === key ? "ring-2 ring-offset-2 ring-[#fc5b08]" : ""
                           }`}
                         />
                       ))}
@@ -256,25 +331,25 @@ export default function RoundPage() {
                     onChange={(e) => setCodeInput(e.target.value)}
                     placeholder="1234"
                     autoFocus
-                    className="rounded-md border border-slate-300 bg-white px-3 py-1.5 w-24 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="rounded-md border border-[#dce1e5] bg-white px-3 py-1.5 w-24 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fc5b08]"
                   />
                   <button
                     type="submit"
-                    className="rounded-md bg-orange-500 text-white text-sm font-medium px-4 py-1.5 hover:bg-orange-600"
+                    className="rounded-md bg-[#fc5b08] text-white text-sm font-medium px-4 py-1.5 hover:bg-[#df4c00]"
                   >
                     {codeModalPlayer.code ? "Enter" : "Set code"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setCodeModalPlayer(null)}
-                    className="text-sm text-slate-500 hover:underline"
+                    className="text-sm text-[#647895] hover:underline"
                   >
                     Cancel
                   </button>
                 </div>
                 {codeModalError && <p className="text-red-600 text-sm mt-2">{codeModalError}</p>}
                 {!codeModalPlayer.code && (
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-[#647895] mt-2">
                     Remember this code &mdash; you'll need it to get back into your scorecard later.
                   </p>
                 )}
@@ -284,48 +359,48 @@ export default function RoundPage() {
         )}
 
         {me && (
-          <section className="bg-white rounded-xl border border-slate-200 p-5">
+          <section className="relative overflow-hidden bg-white rounded-2xl border border-[#dce1e5] p-5 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-blue-950">
+              <h2 className="text-lg font-bold text-[#071d49]">
                 Your scorecard &mdash; {me.name}
               </h2>
               <button
                 onClick={clearPlayer}
-                className="text-xs text-orange-600 hover:underline"
+                className="text-xs text-[#eb570c] hover:underline"
               >
                 Not you?
               </button>
             </div>
-            <div className="text-center">
-              <h3 className="font-bold text-lg text-blue-950">Hole {currentHole}</h3>
-              <p className="text-sm text-orange-600 mb-4">
+            <div className="text-center relative z-10">
+              <h3 className="font-serif text-3xl font-bold text-[#071d49] mb-2">Hole {currentHole}</h3>
+              <span className="inline-block bg-[#fff0df] text-[#ea600d] rounded-full text-sm px-4 py-1 mb-4">
                 Par {pars[currentHole] ?? 4}
                 {hasYardages && yardages[currentHole] && ` · ${yardages[currentHole]} yds`}
-              </p>
+              </span>
 
               <div className="flex items-center justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setCurrentHole((h) => Math.max(1, h - 1))}
+                  onClick={() => goToHole(Math.max(1, currentHole - 1))}
                   disabled={currentHole === 1}
                   aria-label="Previous hole"
-                  className="w-11 h-11 rounded-full bg-blue-50 text-blue-900 text-xl font-bold flex items-center justify-center hover:bg-blue-100 disabled:opacity-30"
+                  className="w-11 h-11 rounded-full bg-[#eef1f4] text-[#071d49] text-xl font-bold flex items-center justify-center hover:bg-[#e3e8ec] disabled:opacity-30"
                 >
                   ‹
                 </button>
 
-                <div className="flex items-stretch rounded-2xl border border-orange-300 overflow-hidden">
+                <div className="flex items-stretch rounded-2xl border border-[#fc5b08] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => adjustHoleScore(-1)}
                     aria-label="Decrease score"
-                    className="px-5 text-2xl font-bold text-orange-600 hover:bg-orange-50"
+                    className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
                   >
                     −
                   </button>
                   <div className="px-6 py-2 flex flex-col items-center justify-center border-x border-orange-200 min-w-[88px]">
-                    <span className="text-xs text-orange-600">Score</span>
-                    <span className="text-3xl font-bold text-blue-950">
+                    <span className="text-xs text-[#fc5b08]">Score</span>
+                    <span className="text-3xl font-bold text-[#071d49]">
                       {me.holes?.[currentHole] ?? 0}
                     </span>
                   </div>
@@ -333,7 +408,7 @@ export default function RoundPage() {
                     type="button"
                     onClick={() => adjustHoleScore(1)}
                     aria-label="Increase score"
-                    className="px-5 text-2xl font-bold text-orange-600 hover:bg-orange-50"
+                    className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
                   >
                     +
                   </button>
@@ -341,198 +416,162 @@ export default function RoundPage() {
 
                 <button
                   type="button"
-                  onClick={() => setCurrentHole((h) => Math.min(18, h + 1))}
+                  onClick={() => goToHole(Math.min(18, currentHole + 1))}
                   disabled={currentHole === 18}
                   aria-label="Next hole"
-                  className="w-11 h-11 rounded-full bg-blue-50 text-blue-900 text-xl font-bold flex items-center justify-center hover:bg-blue-100 disabled:opacity-30"
+                  className="w-11 h-11 rounded-full bg-[#eef1f4] text-[#071d49] text-xl font-bold flex items-center justify-center hover:bg-[#e3e8ec] disabled:opacity-30"
                 >
                   ›
                 </button>
               </div>
             </div>
-            <p className="mt-4 text-sm text-blue-950 text-center">
+            <p className="mt-4 text-sm text-[#071d49] text-center relative z-10">
               Total: <span className="font-semibold">{totals[me.id] || 0}</span>
-              <span className="text-orange-600 ml-1">(par {totalPar})</span>
+              <span className="text-[#647895] mx-2">|</span>
+              <span className="text-[#647895]">Course par {totalPar}</span>
             </p>
+
+            <div className="flex items-center gap-3 mt-5 text-xs text-[#647895] relative z-10">
+              <span className="whitespace-nowrap">{currentHole} of 18 holes</span>
+              <progress
+                value={currentHole}
+                max={18}
+                className="w-full h-2 [&::-webkit-progress-bar]:bg-[#eef1f4] [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-value]:bg-[#fc5b08] [&::-webkit-progress-value]:rounded-full [&::-moz-progress-bar]:bg-[#fc5b08] rounded-full"
+              />
+              <span className="whitespace-nowrap">{Math.round((currentHole / 18) * 100)}%</span>
+            </div>
+
+            <img
+              src="/golf-ball-tee.png"
+              alt=""
+              aria-hidden="true"
+              className="hidden sm:block absolute -right-2 -bottom-4 w-28 h-auto opacity-90 pointer-events-none"
+            />
           </section>
         )}
 
         {hasMatch && (
-          <section className="bg-white rounded-xl border-2 border-[#060f1e] px-5 py-3 flex items-center justify-center gap-4">
-            <span className="rounded-full bg-[#521515] text-white text-sm font-bold px-4 py-1.5">
-              RED {matchTally.red}
-            </span>
-            {matchTally.tie > 0 && (
-              <span className="text-xs text-slate-500">{matchTally.tie} halved</span>
-            )}
-            <span className="rounded-full bg-[#2a4163] text-white text-sm font-bold px-4 py-1.5">
-              BLUE {matchTally.blue}
-            </span>
+          <section className="bg-white rounded-2xl border border-[#dce1e5] shadow-sm px-5 py-4 flex flex-wrap items-center justify-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#071d49]">
+              <span aria-hidden="true">⚑⚑</span>
+              Team match
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 rounded-full bg-[#521515] text-white text-sm font-bold px-4 py-1.5">
+                <span aria-hidden="true">⚑</span> RED {matchTally.red}
+              </span>
+              {matchTally.tie > 0 && (
+                <span className="text-xs text-[#647895]">{matchTally.tie} halved</span>
+              )}
+              <span className="flex items-center gap-1.5 rounded-full bg-[#2a4163] text-white text-sm font-bold px-4 py-1.5">
+                <span aria-hidden="true">⚑</span> BLUE {matchTally.blue}
+              </span>
+            </div>
+            <span className="hidden sm:inline font-serif italic text-[#647895]">Better Together</span>
           </section>
         )}
 
-        <section className="bg-white rounded-xl overflow-hidden border-2 border-[#060f1e]">
+        <section className="bg-white rounded-2xl overflow-hidden border border-[#dce1e5] shadow-sm">
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <h2 className="font-serif text-lg font-bold text-[#071d49]">The scorecard</h2>
+            <button
+              onClick={() => setNine((n) => 1 - n)}
+              aria-label={`Switch to ${nine === 0 ? "back" : "front"} nine`}
+              className="rounded-full border border-[#dce1e5] text-sm font-semibold text-[#071d49] px-4 py-1.5 hover:bg-orange-50"
+            >
+              {nine === 0 ? "Front nine" : "Back nine"}
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="border-collapse text-sm min-w-max w-full">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white text-left text-blue-950 px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold">
+                  <th className="sticky left-0 bg-white text-left text-[#071d49] px-4 py-2 border-b-2 border-r-2 border-[#dce1e5] text-sm font-bold">
                     Player
                   </th>
-                  {FRONT_NINE.map((hole) => (
+                  {visibleHoles.map((hole) => (
                     <th
                       key={hole}
-                      className={`text-center px-3 py-3 border-b-2 border-r border-[#060f1e] text-base font-bold text-blue-950 ${
-                        hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
+                      className={`text-center border-b-2 border-r border-[#dce1e5] text-sm font-bold text-[#071d49] ${
+                        hole === currentHole ? "bg-[#fff0df]" : "bg-white"
                       }`}
                     >
-                      {hole}
-                      {hole === currentHole && (
-                        <div className="text-[10px] font-normal tracking-wide text-blue-950">Editing</div>
-                      )}
-                      <HoleWinnerDot hole={hole} />
+                      <button
+                        type="button"
+                        onClick={() => setCurrentHole(hole)}
+                        className="w-full h-full px-3 py-2 hover:bg-orange-50"
+                      >
+                        {hole}
+                        <HoleWinnerDot hole={hole} />
+                      </button>
                     </th>
                   ))}
-                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
-                    OUT
-                  </th>
-                  {BACK_NINE.map((hole) => (
-                    <th
-                      key={hole}
-                      className={`text-center px-3 py-3 border-b-2 border-r border-[#060f1e] text-base font-bold text-blue-950 ${
-                        hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
-                      }`}
-                    >
-                      {hole}
-                      {hole === currentHole && (
-                        <div className="text-[10px] font-normal tracking-wide text-blue-950">Editing</div>
-                      )}
-                      <HoleWinnerDot hole={hole} />
-                    </th>
-                  ))}
-                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
-                    IN
-                  </th>
-                  <th className="text-center px-4 py-3 border-b-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
-                    TOTAL
+                  <th className="text-center px-4 py-2 border-b-2 border-[#dce1e5] text-sm font-bold text-[#071d49] bg-[#f3f6fa]">
+                    {nine === 0 ? "OUT" : "IN"}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {hasYardages && (
                   <tr>
-                    <td className="sticky left-0 bg-white text-[#536681] px-4 py-1.5 border-b border-r-2 border-[#060f1e] text-xs font-semibold">
+                    <td className="sticky left-0 bg-white text-[#647895] px-4 py-1.5 border-b border-r-2 border-[#dce1e5] text-xs font-semibold">
                       Yards
                     </td>
-                    {FRONT_NINE.map((hole) => (
+                    {visibleHoles.map((hole) => (
                       <td
                         key={hole}
-                        className="text-center px-3 py-1.5 border-b border-r border-[#060f1e] text-xs text-[#536681]"
+                        className="text-center px-3 py-1.5 border-b border-r border-[#dce1e5] text-xs text-[#647895]"
                       >
                         {yardages[hole] ?? ""}
                       </td>
                     ))}
-                    <td className="text-center px-4 py-1.5 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-semibold">
-                      {sumHoles(yardages, FRONT_NINE)}
-                    </td>
-                    {BACK_NINE.map((hole) => (
-                      <td
-                        key={hole}
-                        className="text-center px-3 py-1.5 border-b border-r border-[#060f1e] text-xs text-[#536681]"
-                      >
-                        {yardages[hole] ?? ""}
-                      </td>
-                    ))}
-                    <td className="text-center px-4 py-1.5 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-semibold">
-                      {sumHoles(yardages, BACK_NINE)}
-                    </td>
-                    <td className="text-center px-4 py-1.5 border-b border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-bold">
-                      {totalYardage}
+                    <td className="text-center px-4 py-1.5 border-b border-[#dce1e5] bg-[#f3f6fa] text-xs text-[#647895] font-semibold">
+                      {sumHoles(yardages, visibleHoles)}
                     </td>
                   </tr>
                 )}
-                <tr>
-                  <td className="sticky left-0 bg-white text-blue-950 px-4 py-2 border-b-2 border-r-2 border-[#060f1e] font-semibold">
+                <tr className="par-row">
+                  <td className="sticky left-0 bg-white text-[#071d49] px-4 py-2 border-b-2 border-r-2 border-[#dce1e5] font-semibold">
                     Par
                   </td>
-                  {FRONT_NINE.map((hole) => (
+                  {visibleHoles.map((hole) => (
                     <td
                       key={hole}
-                      className={`text-center px-3 py-2 border-b-2 border-r border-[#060f1e] text-blue-950 ${
-                        hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
+                      className={`text-center px-3 py-2 border-b-2 border-r border-[#dce1e5] text-[#071d49] ${
+                        hole === currentHole ? "bg-[#fff0df]" : "bg-white"
                       }`}
                     >
                       {pars[hole] ?? 4}
                     </td>
                   ))}
-                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-semibold">
-                    {sumHoles(pars, FRONT_NINE)}
-                  </td>
-                  {BACK_NINE.map((hole) => (
-                    <td
-                      key={hole}
-                      className={`text-center px-3 py-2 border-b-2 border-r border-[#060f1e] text-blue-950 ${
-                        hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
-                      }`}
-                    >
-                      {pars[hole] ?? 4}
-                    </td>
-                  ))}
-                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-semibold">
-                    {sumHoles(pars, BACK_NINE)}
-                  </td>
-                  <td className="text-center px-4 py-2 border-b-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-bold">
-                    {totalPar}
+                  <td className="text-center px-4 py-2 border-b-2 border-[#dce1e5] bg-[#f3f6fa] text-[#071d49] font-semibold">
+                    {sumHoles(pars, visibleHoles)}
                   </td>
                 </tr>
                 {leaderboard.map((p) => {
-                  const out = sumHoles(p.holes || {}, FRONT_NINE);
-                  const inScore = sumHoles(p.holes || {}, BACK_NINE);
-                  const team = TEAM_COLORS[p.teamColor] || TEAM_COLORS.white;
+                  const halfTotal = sumHoles(p.holes || {}, visibleHoles);
+                  const dot = TEAM_DOT[p.teamColor] || TEAM_DOT.white;
                   return (
-                    <tr key={p.id} className="bg-white">
-                      <td
-                        className={`sticky left-0 font-bold px-4 py-3 border-b border-r-2 border-[#060f1e] whitespace-nowrap ${team.bg} ${team.text}`}
-                      >
+                    <tr key={p.id}>
+                      <td className="sticky left-0 bg-white text-[#071d49] font-bold px-4 py-3 border-b border-r-2 border-[#dce1e5] whitespace-nowrap">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full mr-2 ${dot}`} />
                         {p.name}
                         {p.id === myPlayerId && (
-                          <div
-                            className={`text-[11px] font-normal ${
-                              team.text === "text-white" ? "text-orange-200" : "text-orange-600"
-                            }`}
-                          >
-                            You
-                          </div>
+                          <small className="ml-1.5 text-[10px] font-normal text-[#eb570c]">You</small>
                         )}
                       </td>
-                      {FRONT_NINE.map((hole) => (
+                      {visibleHoles.map((hole) => (
                         <td
                           key={hole}
-                          className={`text-center px-3 py-3 border-b border-r border-[#060f1e] text-xl font-bold text-blue-950 ${
-                            hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
+                          className={`text-center px-3 py-3 border-b border-r border-[#dce1e5] text-xl font-bold text-[#071d49] ${
+                            hole === currentHole ? "bg-[#fff0df]" : "bg-white"
                           }`}
                         >
                           {p.holes?.[hole] ?? "—"}
                         </td>
                       ))}
-                      <td className="text-center px-4 py-3 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-lg font-bold text-blue-950">
-                        {out ?? "—"}
-                      </td>
-                      {BACK_NINE.map((hole) => (
-                        <td
-                          key={hole}
-                          className={`text-center px-3 py-3 border-b border-r border-[#060f1e] text-xl font-bold text-blue-950 ${
-                            hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
-                          }`}
-                        >
-                          {p.holes?.[hole] ?? "—"}
-                        </td>
-                      ))}
-                      <td className="text-center px-4 py-3 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-lg font-bold text-blue-950">
-                        {inScore ?? "—"}
-                      </td>
-                      <td className="text-center px-4 py-3 border-b border-[#060f1e] bg-[#e5e5e5] text-xl font-bold text-blue-950">
-                        {totals[p.id] || 0}
+                      <td className="text-center px-4 py-3 border-b border-[#dce1e5] bg-[#f3f6fa] text-lg font-bold text-[#071d49]">
+                        {halfTotal ?? "—"}
                       </td>
                     </tr>
                   );
@@ -541,6 +580,23 @@ export default function RoundPage() {
             </table>
           </div>
         </section>
+      </div>
+
+      <div className="relative mt-4">
+        <div
+          className="h-[220px] bg-cover bg-center bg-no-repeat flex items-center justify-center text-center px-6"
+          style={{ backgroundImage: "url('/round-footer.png')" }}
+        >
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#071d49]">
+              A little friendly competition.
+            </h2>
+            <div className="w-16 h-0.5 bg-[#fc5b08] mx-auto my-2" />
+            <p className="text-xs uppercase tracking-wide text-[#647895]">
+              People &bull; Birdies &bull; Better days
+            </p>
+          </div>
+        </div>
       </div>
     </main>
   );
