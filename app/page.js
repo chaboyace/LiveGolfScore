@@ -44,6 +44,7 @@ export default function Home() {
   const [roundName, setRoundName] = useState("");
   const [players, setPlayers] = useState(Array(DEFAULT_PLAYER_COUNT).fill(""));
   const [pars, setPars] = useState(initialPars());
+  const [organizerCode, setOrganizerCode] = useState("");
   const [trackYardage, setTrackYardage] = useState(false);
   const [yardages, setYardages] = useState(initialYardages());
   const [creating, setCreating] = useState(false);
@@ -189,6 +190,11 @@ export default function Home() {
       return;
     }
 
+    if (!/^\d{4}$/.test(organizerCode.trim())) {
+      setError("Set a 4-digit organizer code before creating the round.");
+      return;
+    }
+
     const finalPars = {};
     for (const hole of HOLES) {
       const value = Number(pars[hole]);
@@ -219,6 +225,7 @@ export default function Home() {
         createdAt: serverTimestamp(),
         holeCount: 18,
         pars: finalPars,
+        organizerCode: organizerCode.trim(),
         ...(finalYardages ? { yardages: finalYardages } : {}),
       });
 
@@ -395,6 +402,24 @@ export default function Home() {
               >
                 + Add another player
               </button>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[#111d49] mb-1.5">
+                Organizer code
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={organizerCode}
+                onChange={(e) => setOrganizerCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="1234"
+                className="w-28 rounded-lg border border-[#ccd7e3] bg-white px-3 h-11 text-[#111d49] focus:outline-none focus:ring-2 focus:ring-[#fb6500]"
+              />
+              <p className="text-xs text-[#536681] mt-1.5">
+                Pick a 4-digit code for yourself as the organizer. You&apos;ll use it on the round page to reset a player&apos;s code or team color if they lose it.
+              </p>
             </div>
 
             <div>

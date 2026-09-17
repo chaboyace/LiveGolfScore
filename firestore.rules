@@ -22,13 +22,15 @@ service cloud.firestore {
     }
 
     function isValidRound(data) {
-      return data.keys().hasOnly(['name', 'createdAt', 'holeCount', 'pars', 'yardages'])
+      return data.keys().hasOnly(['name', 'createdAt', 'holeCount', 'pars', 'yardages', 'organizerCode'])
         && data.name is string
         && data.name.size() <= 100
         && data.holeCount == 18
         && data.pars is map
         && data.pars.size() == 18
-        && (!('yardages' in data) || (data.yardages is map && data.yardages.size() == 18));
+        && (!('yardages' in data) || (data.yardages is map && data.yardages.size() == 18))
+        && data.organizerCode is string
+        && data.organizerCode.size() == 4;
     }
 
     function isValidNewScore(data) {
@@ -52,6 +54,7 @@ service cloud.firestore {
         && after.teamColor in ['white', 'red', 'blue']
         && (
           after.code == before.code
+          || after.code == null
           || (before.code == null && after.code is string && after.code.size() == 4)
         );
     }

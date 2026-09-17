@@ -51,6 +51,12 @@ export default function RoundPage() {
   const [codeModalError, setCodeModalError] = useState("");
   const [selectedColor, setSelectedColor] = useState("white");
   const [shareStatus, setShareStatus] = useState("");
+  const [organizerCode, setOrganizerCode] = useState("");
+  const [orgToolsOpen, setOrgToolsOpen] = useState(false);
+  const [orgUnlocked, setOrgUnlocked] = useState(false);
+  const [orgCodeInput, setOrgCodeInput] = useState("");
+  const [orgError, setOrgError] = useState("");
+  const [resetStatus, setResetStatus] = useState("");
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -66,6 +72,7 @@ export default function RoundPage() {
         setRoundName(data.name);
         setPars(data.pars || {});
         setYardages(data.yardages || {});
+        setOrganizerCode(data.organizerCode || "");
       }
     });
 
@@ -123,6 +130,34 @@ export default function RoundPage() {
   function clearPlayer() {
     window.localStorage.removeItem(storageKey);
     setMyPlayerId(null);
+  }
+
+  function openOrganizerTools() {
+    setOrgToolsOpen(true);
+    setOrgUnlocked(false);
+    setOrgCodeInput("");
+    setOrgError("");
+    setResetStatus("");
+  }
+
+  function submitOrganizerCode(e) {
+    e.preventDefault();
+    if (orgCodeInput.trim() === organizerCode) {
+      setOrgUnlocked(true);
+      setOrgError("");
+    } else {
+      setOrgError("Wrong organizer code.");
+    }
+  }
+
+  async function resetPlayerCode(player) {
+    await updateDoc(doc(db, "rounds", id, "scores", player.id), {
+      code: null,
+      teamColor: "white",
+    });
+    if (player.id === myPlayerId) clearPlayer();
+    setResetStatus(`${player.name}'s code and team color were reset.`);
+    setTimeout(() => setResetStatus(""), 4000);
   }
 
   async function setHoleScore(playerId, hole, value) {
@@ -279,18 +314,91 @@ export default function RoundPage() {
           {shareStatus && (
             <p className="text-xs text-[#647895] mt-2 max-w-xs">{shareStatus}</p>
           )}
-          <div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3">
             <Link
               href={`/round/${id}/watch`}
-              className="inline-block mt-3 text-sm text-[#071d49] underline decoration-[#647895] hover:decoration-[#071d49]"
+              className="inline-block text-sm text-[#071d49] underline decoration-[#647895] hover:decoration-[#071d49]"
             >
               Just watching? See the spectator view &rarr;
             </Link>
+            <button
+              type="button"
+              onClick={openOrganizerTools}
+              className="text-sm text-[#647895] underline decoration-[#647895] hover:decoration-[#071d49] hover:text-[#071d49]"
+            >
+              Organizer? Manage player codes
+            </button>
           </div>
         </section>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pb-14 space-y-6">
+        {orgToolsOpen && (
+          <section className="bg-white rounded-2xl border border-[#dce1e5] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-[#071d49]">Organizer tools</h2>
+              <button
+                type="button"
+                onClick={() => setOrgToolsOpen(false)}
+                className="text-xs text-[#647895] hover:underline"
+              >
+                Close
+              </button>
+            </div>
+
+            {!orgUnlocked ? (
+              <form onSubmit={submitOrganizerCode} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={orgCodeInput}
+                  onChange={(e) => setOrgCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="1234"
+                  autoFocus
+                  className="rounded-md border border-[#dce1e5] bg-white px-3 py-1.5 w-24 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#fc5b08]"
+                />
+                <button
+                  type="submit"
+                  className="rounded-md bg-[#fc5b08] text-white text-sm font-medium px-4 py-1.5 hover:bg-[#df4c00]"
+                >
+                  Unlock
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-[#647895] mb-2">
+                  Reset a player&apos;s code and team color so they can set a new one.
+                </p>
+                {players.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg border border-[#dce1e5] px-3 py-2"
+                  >
+                    <span className="font-medium text-[#071d49]">
+                      {p.name}
+                      {!p.code && (
+                        <span className="text-xs font-normal text-[#647895] ml-2">no code set</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => resetPlayerCode(p)}
+                      disabled={!p.code}
+                      className="text-xs font-semibold text-[#eb570c] hover:underline disabled:opacity-30 disabled:no-underline"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {orgError && <p className="text-red-600 text-sm mt-2">{orgError}</p>}
+            {resetStatus && <p className="text-[#0e6137] text-sm mt-2">{resetStatus}</p>}
+          </section>
+        )}
+
         {!me && (
           <section className="bg-white rounded-2xl border border-[#dce1e5] p-5 shadow-sm">
             <h2 className="font-semibold text-[#071d49] mb-3">Who are you?</h2>
