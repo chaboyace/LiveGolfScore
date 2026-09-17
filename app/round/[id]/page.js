@@ -33,6 +33,7 @@ export default function RoundPage() {
 
   const [roundName, setRoundName] = useState("");
   const [pars, setPars] = useState({});
+  const [yardages, setYardages] = useState({});
   const [players, setPlayers] = useState([]);
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,7 @@ export default function RoundPage() {
         const data = snap.data();
         setRoundName(data.name);
         setPars(data.pars || {});
+        setYardages(data.yardages || {});
       }
     });
 
@@ -134,6 +136,12 @@ export default function RoundPage() {
   const totalPar = useMemo(
     () => HOLES.reduce((sum, hole) => sum + (pars[hole] ?? 4), 0),
     [pars]
+  );
+
+  const hasYardages = Object.keys(yardages).length > 0;
+  const totalYardage = useMemo(
+    () => HOLES.reduce((sum, hole) => sum + (yardages[hole] ?? 0), 0),
+    [yardages]
   );
 
   const totals = useMemo(() => {
@@ -290,7 +298,10 @@ export default function RoundPage() {
             </div>
             <div className="text-center">
               <h3 className="font-bold text-lg text-blue-950">Hole {currentHole}</h3>
-              <p className="text-sm text-orange-600 mb-4">Par {pars[currentHole] ?? 4}</p>
+              <p className="text-sm text-orange-600 mb-4">
+                Par {pars[currentHole] ?? 4}
+                {hasYardages && yardages[currentHole] && ` · ${yardages[currentHole]} yds`}
+              </p>
 
               <div className="flex items-center justify-center gap-3">
                 <button
@@ -408,6 +419,38 @@ export default function RoundPage() {
                 </tr>
               </thead>
               <tbody>
+                {hasYardages && (
+                  <tr>
+                    <td className="sticky left-0 bg-white text-[#536681] px-4 py-1.5 border-b border-r-2 border-[#060f1e] text-xs font-semibold">
+                      Yards
+                    </td>
+                    {FRONT_NINE.map((hole) => (
+                      <td
+                        key={hole}
+                        className="text-center px-3 py-1.5 border-b border-r border-[#060f1e] text-xs text-[#536681]"
+                      >
+                        {yardages[hole] ?? ""}
+                      </td>
+                    ))}
+                    <td className="text-center px-4 py-1.5 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-semibold">
+                      {sumHoles(yardages, FRONT_NINE)}
+                    </td>
+                    {BACK_NINE.map((hole) => (
+                      <td
+                        key={hole}
+                        className="text-center px-3 py-1.5 border-b border-r border-[#060f1e] text-xs text-[#536681]"
+                      >
+                        {yardages[hole] ?? ""}
+                      </td>
+                    ))}
+                    <td className="text-center px-4 py-1.5 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-semibold">
+                      {sumHoles(yardages, BACK_NINE)}
+                    </td>
+                    <td className="text-center px-4 py-1.5 border-b border-[#060f1e] bg-[#e5e5e5] text-xs text-[#536681] font-bold">
+                      {totalYardage}
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td className="sticky left-0 bg-white text-blue-950 px-4 py-2 border-b-2 border-r-2 border-[#060f1e] font-semibold">
                     Par

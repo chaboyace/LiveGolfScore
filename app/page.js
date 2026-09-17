@@ -14,11 +14,19 @@ function initialPars() {
   return pars;
 }
 
+function initialYardages() {
+  const yardages = {};
+  for (const hole of HOLES) yardages[hole] = "";
+  return yardages;
+}
+
 export default function Home() {
   const router = useRouter();
   const [roundName, setRoundName] = useState("");
   const [players, setPlayers] = useState(Array(DEFAULT_PLAYER_COUNT).fill(""));
   const [pars, setPars] = useState(initialPars());
+  const [trackYardage, setTrackYardage] = useState(false);
+  const [yardages, setYardages] = useState(initialYardages());
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,6 +47,10 @@ export default function Home() {
 
   function updatePar(hole, value) {
     setPars((prev) => ({ ...prev, [hole]: value }));
+  }
+
+  function updateYardage(hole, value) {
+    setYardages((prev) => ({ ...prev, [hole]: value }));
   }
 
   async function searchCourses(e) {
@@ -81,12 +93,25 @@ export default function Home() {
       }
 
       const newPars = {};
+      const newYardages = {};
+      let hasYardage = false;
       tee.holes.forEach((h, i) => {
         newPars[i + 1] = String(h.par);
+        if (h.yardage != null) {
+          newYardages[i + 1] = String(h.yardage);
+          hasYardage = true;
+        }
       });
-      for (const hole of HOLES) if (!newPars[hole]) newPars[hole] = "4";
+      for (const hole of HOLES) {
+        if (!newPars[hole]) newPars[hole] = "4";
+        if (!newYardages[hole]) newYardages[hole] = "";
+      }
 
       setPars(newPars);
+      if (hasYardage) {
+        setYardages(newYardages);
+        setTrackYardage(true);
+      }
       setAppliedCourseName(
         `${courseData.club_name}${
           courseData.course_name && courseData.course_name !== courseData.club_name
@@ -124,6 +149,19 @@ export default function Home() {
       finalPars[hole] = value;
     }
 
+    let finalYardages = null;
+    if (trackYardage) {
+      finalYardages = {};
+      for (const hole of HOLES) {
+        const value = Number(yardages[hole]);
+        if (!Number.isInteger(value) || value < 50 || value > 700) {
+          setError(`Enter a valid yardage (50-700) for hole ${hole}, or turn off yardage tracking.`);
+          return;
+        }
+        finalYardages[hole] = value;
+      }
+    }
+
     setCreating(true);
     try {
       const roundRef = await addDoc(collection(db, "rounds"), {
@@ -131,6 +169,7 @@ export default function Home() {
         createdAt: serverTimestamp(),
         holeCount: 18,
         pars: finalPars,
+        ...(finalYardages ? { yardages: finalYardages } : {}),
       });
 
       await Promise.all(
@@ -387,6 +426,49 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-[#111d49]">
+                  Track yardage <span className="font-normal text-[#536681]">(optional)</span>
+                </label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={trackYardage}
+                  onClick={() => setTrackYardage((v) => !v)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    trackYardage ? "bg-[#fb6500]" : "bg-[#ccd7e3]"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                      trackYardage ? "translate-x-5" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {trackYardage && (
+                <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mt-3">
+                  {HOLES.map((hole) => (
+                    <div key={hole} className="text-center">
+                      <div className="text-xs text-[#536681] mb-1">{hole}</div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={50}
+                        max={700}
+                        placeholder="yds"
+                        value={yardages[hole]}
+                        onChange={(e) => updateYardage(hole, e.target.value)}
+                        className="w-full text-center rounded-md border border-[#ccd7e3] bg-white h-10 text-[#111d49] focus:outline-none focus:ring-2 focus:ring-[#fb6500]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {error && <p className="text-red-600 text-sm">{error}</p>}
