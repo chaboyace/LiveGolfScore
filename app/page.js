@@ -139,6 +139,7 @@ export default function Home() {
             name,
             holes: {},
             code: null,
+            teamColor: "white",
           })
         )
       );

@@ -31,22 +31,24 @@ service cloud.firestore {
     }
 
     function isValidNewScore(data) {
-      return data.keys().hasOnly(['name', 'holes', 'code'])
+      return data.keys().hasOnly(['name', 'holes', 'code', 'teamColor'])
         && data.name is string
         && data.name.size() <= 50
         && data.holes is map
         && data.holes.size() == 0
-        && data.code == null;
+        && data.code == null
+        && data.teamColor in ['white', 'red', 'blue'];
     }
 
     function isValidScoreUpdate(before, after) {
-      return after.keys().hasOnly(['name', 'holes', 'code'])
+      return after.keys().hasOnly(['name', 'holes', 'code', 'teamColor'])
         && after.name == before.name
         && after.holes is map
         && after.holes.size() <= 18
         && after.holes.keys().hasOnly(
           ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18']
         )
+        && after.teamColor in ['white', 'red', 'blue']
         && (
           after.code == before.code
           || (before.code == null && after.code is string && after.code.size() == 4)

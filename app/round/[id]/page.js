@@ -9,6 +9,12 @@ const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 const FRONT_NINE = HOLES.slice(0, 9);
 const BACK_NINE = HOLES.slice(9);
 
+const TEAM_COLORS = {
+  white: { bg: "bg-white", text: "text-blue-950", swatch: "bg-white border border-slate-400" },
+  red: { bg: "bg-red-600", text: "text-white", swatch: "bg-red-600" },
+  blue: { bg: "bg-blue-600", text: "text-white", swatch: "bg-blue-600" },
+};
+
 function sumHoles(holesLike, holeRange) {
   let sum = 0;
   let hasAny = false;
@@ -34,6 +40,7 @@ export default function RoundPage() {
   const [codeModalPlayer, setCodeModalPlayer] = useState(null);
   const [codeInput, setCodeInput] = useState("");
   const [codeModalError, setCodeModalError] = useState("");
+  const [selectedColor, setSelectedColor] = useState("white");
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -65,6 +72,7 @@ export default function RoundPage() {
     setCodeModalPlayer(player);
     setCodeInput("");
     setCodeModalError("");
+    setSelectedColor("white");
   }
 
   function logInLocally(playerId) {
@@ -91,7 +99,10 @@ export default function RoundPage() {
     }
 
     try {
-      await updateDoc(doc(db, "rounds", id, "scores", codeModalPlayer.id), { code });
+      await updateDoc(doc(db, "rounds", id, "scores", codeModalPlayer.id), {
+        code,
+        teamColor: selectedColor,
+      });
       logInLocally(codeModalPlayer.id);
     } catch (err) {
       setCodeModalError("Someone just set a code for this name — refresh and enter it instead.");
@@ -178,6 +189,24 @@ export default function RoundPage() {
                     ? `Enter ${codeModalPlayer.name}'s 4-digit code`
                     : `Set a 4-digit code for ${codeModalPlayer.name}`}
                 </p>
+                {!codeModalPlayer.code && (
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-500 mb-1">Pick a team color</p>
+                    <div className="flex gap-2">
+                      {Object.entries(TEAM_COLORS).map(([key, { swatch }]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setSelectedColor(key)}
+                          aria-label={key}
+                          className={`w-8 h-8 rounded-full ${swatch} ${
+                            selectedColor === key ? "ring-2 ring-offset-2 ring-orange-500" : ""
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -368,12 +397,21 @@ export default function RoundPage() {
                 {leaderboard.map((p) => {
                   const out = sumHoles(p.holes || {}, FRONT_NINE);
                   const inScore = sumHoles(p.holes || {}, BACK_NINE);
+                  const team = TEAM_COLORS[p.teamColor] || TEAM_COLORS.white;
                   return (
                     <tr key={p.id} className="bg-white">
-                      <td className="sticky left-0 bg-white text-blue-950 font-bold px-4 py-3 border-b border-r-2 border-[#060f1e] whitespace-nowrap">
+                      <td
+                        className={`sticky left-0 font-bold px-4 py-3 border-b border-r-2 border-[#060f1e] whitespace-nowrap ${team.bg} ${team.text}`}
+                      >
                         {p.name}
                         {p.id === myPlayerId && (
-                          <div className="text-[11px] font-normal text-orange-600">You</div>
+                          <div
+                            className={`text-[11px] font-normal ${
+                              team.text === "text-white" ? "text-orange-200" : "text-orange-600"
+                            }`}
+                          >
+                            You
+                          </div>
                         )}
                       </td>
                       {FRONT_NINE.map((hole) => (
