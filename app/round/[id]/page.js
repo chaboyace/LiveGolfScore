@@ -445,7 +445,7 @@ export default function RoundPage() {
               src="/golf-ball-tee.png"
               alt=""
               aria-hidden="true"
-              className="hidden sm:block absolute -right-2 -bottom-4 w-28 h-auto opacity-90 pointer-events-none"
+              className="hidden lg:block absolute -right-16 bottom-6 w-24 h-auto opacity-90 pointer-events-none"
             />
           </section>
         )}
