@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { collection, doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -278,6 +279,14 @@ export default function RoundPage() {
           {shareStatus && (
             <p className="text-xs text-[#647895] mt-2 max-w-xs">{shareStatus}</p>
           )}
+          <div>
+            <Link
+              href={`/round/${id}/watch`}
+              className="inline-block mt-3 text-sm text-[#071d49] underline decoration-[#647895] hover:decoration-[#071d49]"
+            >
+              Just watching? See the spectator view &rarr;
+            </Link>
+          </div>
         </section>
       </div>
 
