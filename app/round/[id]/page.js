@@ -285,18 +285,18 @@ export default function RoundPage() {
           </section>
         )}
 
-        <section className="bg-white rounded-xl overflow-hidden border-2 border-blue-950">
+        <section className="bg-white rounded-xl overflow-hidden border-2 border-[#060f1e]">
           <div className="overflow-x-auto">
             <table className="border-collapse text-sm min-w-max w-full">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white text-left text-blue-950 px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold">
+                  <th className="sticky left-0 bg-white text-left text-blue-950 px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold">
                     Player
                   </th>
                   {FRONT_NINE.map((hole) => (
                     <th
                       key={hole}
-                      className={`text-center px-3 py-3 border-b-2 border-r border-blue-950/40 text-base font-bold text-blue-950 ${
+                      className={`text-center px-3 py-3 border-b-2 border-r border-[#060f1e] text-base font-bold text-blue-950 ${
                         hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                       }`}
                     >
@@ -306,13 +306,13 @@ export default function RoundPage() {
                       )}
                     </th>
                   ))}
-                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold text-blue-950 bg-[#e5e5e5]">
+                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
                     OUT
                   </th>
                   {BACK_NINE.map((hole) => (
                     <th
                       key={hole}
-                      className={`text-center px-3 py-3 border-b-2 border-r border-blue-950/40 text-base font-bold text-blue-950 ${
+                      className={`text-center px-3 py-3 border-b-2 border-r border-[#060f1e] text-base font-bold text-blue-950 ${
                         hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                       }`}
                     >
@@ -322,46 +322,46 @@ export default function RoundPage() {
                       )}
                     </th>
                   ))}
-                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-blue-950 text-base font-bold text-blue-950 bg-[#e5e5e5]">
+                  <th className="text-center px-4 py-3 border-b-2 border-r-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
                     IN
                   </th>
-                  <th className="text-center px-4 py-3 border-b-2 border-blue-950 text-base font-bold text-blue-950 bg-[#e5e5e5]">
+                  <th className="text-center px-4 py-3 border-b-2 border-[#060f1e] text-base font-bold text-blue-950 bg-[#e5e5e5]">
                     TOTAL
                   </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="sticky left-0 bg-white text-blue-950 px-4 py-2 border-b-2 border-r-2 border-blue-950 font-semibold">
+                  <td className="sticky left-0 bg-white text-blue-950 px-4 py-2 border-b-2 border-r-2 border-[#060f1e] font-semibold">
                     Par
                   </td>
                   {FRONT_NINE.map((hole) => (
                     <td
                       key={hole}
-                      className={`text-center px-3 py-2 border-b-2 border-r border-blue-950/40 text-blue-950 ${
+                      className={`text-center px-3 py-2 border-b-2 border-r border-[#060f1e] text-blue-950 ${
                         hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                       }`}
                     >
                       {pars[hole] ?? 4}
                     </td>
                   ))}
-                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-blue-950 bg-[#e5e5e5] text-blue-950 font-semibold">
+                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-semibold">
                     {sumHoles(pars, FRONT_NINE)}
                   </td>
                   {BACK_NINE.map((hole) => (
                     <td
                       key={hole}
-                      className={`text-center px-3 py-2 border-b-2 border-r border-blue-950/40 text-blue-950 ${
+                      className={`text-center px-3 py-2 border-b-2 border-r border-[#060f1e] text-blue-950 ${
                         hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                       }`}
                     >
                       {pars[hole] ?? 4}
                     </td>
                   ))}
-                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-blue-950 bg-[#e5e5e5] text-blue-950 font-semibold">
+                  <td className="text-center px-4 py-2 border-b-2 border-r-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-semibold">
                     {sumHoles(pars, BACK_NINE)}
                   </td>
-                  <td className="text-center px-4 py-2 border-b-2 border-blue-950 bg-[#e5e5e5] text-blue-950 font-bold">
+                  <td className="text-center px-4 py-2 border-b-2 border-[#060f1e] bg-[#e5e5e5] text-blue-950 font-bold">
                     {totalPar}
                   </td>
                 </tr>
@@ -370,7 +370,7 @@ export default function RoundPage() {
                   const inScore = sumHoles(p.holes || {}, BACK_NINE);
                   return (
                     <tr key={p.id} className="bg-white">
-                      <td className="sticky left-0 bg-white text-blue-950 font-bold px-4 py-3 border-b border-r-2 border-blue-950 whitespace-nowrap">
+                      <td className="sticky left-0 bg-white text-blue-950 font-bold px-4 py-3 border-b border-r-2 border-[#060f1e] whitespace-nowrap">
                         {p.name}
                         {p.id === myPlayerId && (
                           <div className="text-[11px] font-normal text-orange-600">You</div>
@@ -379,30 +379,30 @@ export default function RoundPage() {
                       {FRONT_NINE.map((hole) => (
                         <td
                           key={hole}
-                          className={`text-center px-3 py-3 border-b border-r border-blue-950/20 text-xl font-bold text-blue-950 ${
+                          className={`text-center px-3 py-3 border-b border-r border-[#060f1e] text-xl font-bold text-blue-950 ${
                             hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                           }`}
                         >
                           {p.holes?.[hole] ?? "—"}
                         </td>
                       ))}
-                      <td className="text-center px-4 py-3 border-b border-r-2 border-blue-950 bg-[#e5e5e5] text-lg font-bold text-blue-950">
+                      <td className="text-center px-4 py-3 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-lg font-bold text-blue-950">
                         {out ?? "—"}
                       </td>
                       {BACK_NINE.map((hole) => (
                         <td
                           key={hole}
-                          className={`text-center px-3 py-3 border-b border-r border-blue-950/20 text-xl font-bold text-blue-950 ${
+                          className={`text-center px-3 py-3 border-b border-r border-[#060f1e] text-xl font-bold text-blue-950 ${
                             hole === currentHole ? "bg-[#e5e5e5]" : "bg-white"
                           }`}
                         >
                           {p.holes?.[hole] ?? "—"}
                         </td>
                       ))}
-                      <td className="text-center px-4 py-3 border-b border-r-2 border-blue-950 bg-[#e5e5e5] text-lg font-bold text-blue-950">
+                      <td className="text-center px-4 py-3 border-b border-r-2 border-[#060f1e] bg-[#e5e5e5] text-lg font-bold text-blue-950">
                         {inScore ?? "—"}
                       </td>
-                      <td className="text-center px-4 py-3 border-b border-blue-950 bg-[#e5e5e5] text-xl font-bold text-blue-950">
+                      <td className="text-center px-4 py-3 border-b border-[#060f1e] bg-[#e5e5e5] text-xl font-bold text-blue-950">
                         {totals[p.id] || 0}
                       </td>
                     </tr>
