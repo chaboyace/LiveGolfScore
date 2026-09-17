@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { collection, doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
@@ -57,6 +57,9 @@ export default function RoundPage() {
   const [orgCodeInput, setOrgCodeInput] = useState("");
   const [orgError, setOrgError] = useState("");
   const [resetStatus, setResetStatus] = useState("");
+  const [teeTime, setTeeTime] = useState(null);
+  const [unlockOverride, setUnlockOverride] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const storageKey = `livegolfscore:${id}:playerId`;
 
@@ -66,13 +69,15 @@ export default function RoundPage() {
   }, [storageKey]);
 
   useEffect(() => {
-    getDoc(doc(db, "rounds", id)).then((snap) => {
+    const unsubRound = onSnapshot(doc(db, "rounds", id), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setRoundName(data.name);
         setPars(data.pars || {});
         setYardages(data.yardages || {});
         setOrganizerCode(data.organizerCode || "");
+        setTeeTime(data.teeTime?.toDate ? data.teeTime.toDate() : null);
+        setUnlockOverride(!!data.unlockOverride);
       }
     });
 
@@ -83,8 +88,17 @@ export default function RoundPage() {
       setLoading(false);
     });
 
-    return () => unsub();
+    return () => {
+      unsubRound();
+      unsub();
+    };
   }, [id]);
+
+  useEffect(() => {
+    if (!teeTime || unlockOverride) return;
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [teeTime, unlockOverride]);
 
   function openCodeModal(player) {
     setCodeModalPlayer(player);
@@ -160,6 +174,12 @@ export default function RoundPage() {
     setTimeout(() => setResetStatus(""), 4000);
   }
 
+  async function unlockScoring() {
+    await updateDoc(doc(db, "rounds", id), { unlockOverride: true });
+    setResetStatus("Scoring unlocked for everyone.");
+    setTimeout(() => setResetStatus(""), 4000);
+  }
+
   async function setHoleScore(playerId, hole, value) {
     const strokes = value === "" ? null : Math.max(1, Math.min(15, Number(value)));
     const player = players.find((p) => p.id === playerId);
@@ -191,6 +211,17 @@ export default function RoundPage() {
     }
     setTimeout(() => setShareStatus(""), 4000);
   }
+
+  const isLocked = !unlockOverride && teeTime != null && now < teeTime;
+  const countdownText = useMemo(() => {
+    if (!isLocked) return "";
+    const totalSeconds = Math.max(0, Math.floor((teeTime - now) / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+  }, [isLocked, teeTime, now]);
 
   const totalPar = useMemo(
     () => HOLES.reduce((sum, hole) => sum + (pars[hole] ?? 4), 0),
@@ -366,7 +397,25 @@ export default function RoundPage() {
                 </button>
               </form>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                {teeTime && (
+                  <div className="flex items-center justify-between rounded-lg border border-[#dce1e5] px-3 py-2">
+                    <span className="text-sm text-[#071d49]">
+                      {isLocked
+                        ? `Scoring locked — tees off in ${countdownText}`
+                        : "Scoring is unlocked."}
+                    </span>
+                    {isLocked && (
+                      <button
+                        type="button"
+                        onClick={unlockScoring}
+                        className="text-xs font-semibold text-[#eb570c] hover:underline"
+                      >
+                        Unlock now
+                      </button>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-[#647895] mb-2">
                   Reset a player&apos;s code and team color so they can set a new one.
                 </p>
@@ -506,30 +555,39 @@ export default function RoundPage() {
                   ‹
                 </button>
 
-                <div className="flex items-stretch rounded-2xl border border-[#fc5b08] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => adjustHoleScore(-1)}
-                    aria-label="Decrease score"
-                    className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
-                  >
-                    −
-                  </button>
-                  <div className="px-6 py-2 flex flex-col items-center justify-center border-x border-orange-200 min-w-[88px]">
-                    <span className="text-xs text-[#fc5b08]">Score</span>
-                    <span className="text-3xl font-bold text-[#071d49]">
-                      {me.holes?.[currentHole] ?? 0}
+                {isLocked ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-[#fc5b08] overflow-hidden px-8 py-2 min-w-[160px]">
+                    <span className="text-xs text-[#fc5b08]">Tees off in</span>
+                    <span className="text-3xl font-bold text-[#071d49] tabular-nums">
+                      {countdownText}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => adjustHoleScore(1)}
-                    aria-label="Increase score"
-                    className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
-                  >
-                    +
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex items-stretch rounded-2xl border border-[#fc5b08] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => adjustHoleScore(-1)}
+                      aria-label="Decrease score"
+                      className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
+                    >
+                      −
+                    </button>
+                    <div className="px-6 py-2 flex flex-col items-center justify-center border-x border-orange-200 min-w-[88px]">
+                      <span className="text-xs text-[#fc5b08]">Score</span>
+                      <span className="text-3xl font-bold text-[#071d49]">
+                        {me.holes?.[currentHole] ?? 0}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => adjustHoleScore(1)}
+                      aria-label="Increase score"
+                      className="px-5 text-2xl font-bold text-[#fc5b08] hover:bg-orange-50"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
 
                 <button
                   type="button"

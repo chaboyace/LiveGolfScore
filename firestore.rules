@@ -11,18 +11,19 @@ service cloud.firestore {
       allow get: if true;
       allow list: if false;
       allow create: if isValidRound(request.resource.data);
-      allow update, delete: if false;
+      allow update: if isValidRoundUnlock(resource.data, request.resource.data);
+      allow delete: if false;
 
       match /scores/{scoreId} {
         allow get, list: if true;
         allow create: if isValidNewScore(request.resource.data);
-        allow update: if isValidScoreUpdate(resource.data, request.resource.data);
+        allow update: if isValidScoreUpdate(resource.data, request.resource.data, roundId);
         allow delete: if false;
       }
     }
 
     function isValidRound(data) {
-      return data.keys().hasOnly(['name', 'createdAt', 'holeCount', 'pars', 'yardages', 'organizerCode'])
+      return data.keys().hasOnly(['name', 'createdAt', 'holeCount', 'pars', 'yardages', 'organizerCode', 'teeTime'])
         && data.name is string
         && data.name.size() <= 100
         && data.holeCount == 18
@@ -30,7 +31,22 @@ service cloud.firestore {
         && data.pars.size() == 18
         && (!('yardages' in data) || (data.yardages is map && data.yardages.size() == 18))
         && data.organizerCode is string
-        && data.organizerCode.size() == 4;
+        && data.organizerCode.size() == 4
+        && (!('teeTime' in data) || data.teeTime is timestamp);
+    }
+
+    // The only update a round doc can ever receive after creation is the
+    // organizer flipping scoring open early — every other field is fixed.
+    function isValidRoundUnlock(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['unlockOverride'])
+        && after.unlockOverride == true;
+    }
+
+    function isRoundUnlocked(roundId) {
+      let round = get(/databases/$(database)/documents/rounds/$(roundId)).data;
+      return !('teeTime' in round)
+        || request.time >= round.teeTime
+        || (('unlockOverride' in round) && round.unlockOverride == true);
     }
 
     function isValidNewScore(data) {
@@ -43,7 +59,7 @@ service cloud.firestore {
         && data.teamColor in ['white', 'red', 'blue'];
     }
 
-    function isValidScoreUpdate(before, after) {
+    function isValidScoreUpdate(before, after, roundId) {
       return after.keys().hasOnly(['name', 'holes', 'code', 'teamColor'])
         && after.name == before.name
         && after.holes is map
@@ -56,7 +72,8 @@ service cloud.firestore {
           after.code == before.code
           || after.code == null
           || (before.code == null && after.code is string && after.code.size() == 4)
-        );
+        )
+        && (after.holes == before.holes || isRoundUnlocked(roundId));
     }
   }
 }

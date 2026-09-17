@@ -45,6 +45,7 @@ export default function Home() {
   const [players, setPlayers] = useState(Array(DEFAULT_PLAYER_COUNT).fill(""));
   const [pars, setPars] = useState(initialPars());
   const [organizerCode, setOrganizerCode] = useState("");
+  const [teeTime, setTeeTime] = useState("");
   const [trackYardage, setTrackYardage] = useState(false);
   const [yardages, setYardages] = useState(initialYardages());
   const [creating, setCreating] = useState(false);
@@ -218,6 +219,15 @@ export default function Home() {
       }
     }
 
+    let teeTimeDate = null;
+    if (teeTime) {
+      teeTimeDate = new Date(teeTime);
+      if (Number.isNaN(teeTimeDate.getTime())) {
+        setError("Enter a valid tee time, or leave it blank.");
+        return;
+      }
+    }
+
     setCreating(true);
     try {
       const roundRef = await addDoc(collection(db, "rounds"), {
@@ -226,6 +236,7 @@ export default function Home() {
         holeCount: 18,
         pars: finalPars,
         organizerCode: organizerCode.trim(),
+        ...(teeTimeDate ? { teeTime: teeTimeDate } : {}),
         ...(finalYardages ? { yardages: finalYardages } : {}),
       });
 
@@ -419,6 +430,21 @@ export default function Home() {
               />
               <p className="text-xs text-[#536681] mt-1.5">
                 Pick a 4-digit code for yourself as the organizer. You&apos;ll use it on the round page to reset a player&apos;s code or team color if they lose it.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[#111d49] mb-1.5">
+                Tee time <span className="font-normal text-[#536681]">(optional)</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={teeTime}
+                onChange={(e) => setTeeTime(e.target.value)}
+                className="w-full sm:w-auto rounded-lg border border-[#ccd7e3] bg-white px-3 h-11 text-[#111d49] focus:outline-none focus:ring-2 focus:ring-[#fb6500]"
+              />
+              <p className="text-xs text-[#536681] mt-1.5">
+                Scoring stays locked with a countdown until this time, or until you unlock it early from Organizer tools. Leave blank to allow scoring right away.
               </p>
             </div>
 
