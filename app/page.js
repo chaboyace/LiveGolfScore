@@ -156,7 +156,14 @@ export default function Home() {
     <main className="min-h-screen bg-[#faf9f3]">
       <div className="relative">
         <div
-          className="absolute inset-x-0 top-0 h-[560px] sm:h-[700px] bg-cover bg-top bg-no-repeat"
+          className="absolute inset-x-0 top-0 h-[280px] sm:hidden bg-cover bg-top bg-no-repeat"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, transparent 35%, #faf9f3 92%), url('/golf-landscape.png')",
+          }}
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-[700px] hidden sm:block bg-cover bg-top bg-no-repeat"
           style={{
             backgroundImage:
               "linear-gradient(to bottom, transparent 74%, #faf9f3 100%), url('/golf-landscape.png')",
@@ -178,19 +185,19 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-4 pb-32 sm:pb-40">
+        <section className="relative max-w-4xl mx-auto px-6 sm:px-10 pt-3 sm:pt-4 pb-16 sm:pb-40">
           <div className="relative z-10 max-w-md">
-            <p className="text-[11px] font-bold tracking-[3px] uppercase text-[#215d43] mb-4">
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-[3px] uppercase text-[#215d43] mb-3 sm:mb-4">
               Less admin. More golf.
             </p>
-            <h1 className="text-5xl sm:text-6xl font-extrabold leading-[0.98] tracking-tight text-[#111d49] mb-5">
+            <h1 className="text-4xl sm:text-6xl font-extrabold leading-[1.05] sm:leading-[0.98] tracking-tight text-[#111d49] mb-4 sm:mb-5">
               Your round.
               <br />
               Your crew.
               <br />
               Every shot, <span className="text-[#fb6500]">live.</span>
             </h1>
-            <p className="text-lg text-[#293f5b] mb-6">
+            <p className="text-base sm:text-lg text-[#293f5b] mb-5 sm:mb-6">
               Create a round, share the link,
               <br className="hidden sm:block" /> and keep score together.
             </p>
