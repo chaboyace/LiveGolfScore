@@ -11,8 +11,8 @@ const BACK_NINE = HOLES.slice(9);
 
 const TEAM_COLORS = {
   white: { bg: "bg-white", text: "text-blue-950", swatch: "bg-white border border-slate-400" },
-  red: { bg: "bg-red-600", text: "text-white", swatch: "bg-red-600" },
-  blue: { bg: "bg-blue-600", text: "text-white", swatch: "bg-blue-600" },
+  red: { bg: "bg-[#521515]", text: "text-white", swatch: "bg-[#521515]" },
+  blue: { bg: "bg-[#2a4163]", text: "text-white", swatch: "bg-[#2a4163]" },
 };
 
 function sumHoles(holesLike, holeRange) {
