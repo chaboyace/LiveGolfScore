@@ -61,7 +61,9 @@ service cloud.firestore {
 
     function isValidScoreUpdate(before, after, roundId) {
       return after.keys().hasOnly(['name', 'holes', 'code', 'teamColor'])
-        && after.name == before.name
+        && after.name is string
+        && after.name.size() >= 1
+        && after.name.size() <= 50
         && after.holes is map
         && after.holes.size() <= 18
         && after.holes.keys().hasOnly(

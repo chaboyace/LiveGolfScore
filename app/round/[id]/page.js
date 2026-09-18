@@ -174,6 +174,14 @@ export default function RoundPage() {
     setTimeout(() => setResetStatus(""), 4000);
   }
 
+  async function renamePlayer(player, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === player.name) return;
+    await updateDoc(doc(db, "rounds", id, "scores", player.id), { name: trimmed });
+    setResetStatus(`Renamed "${player.name}" to "${trimmed}".`);
+    setTimeout(() => setResetStatus(""), 4000);
+  }
+
   async function unlockScoring() {
     await updateDoc(doc(db, "rounds", id), { unlockOverride: true });
     setResetStatus("Scoring unlocked for everyone.");
@@ -417,28 +425,42 @@ export default function RoundPage() {
                   </div>
                 )}
                 <p className="text-sm text-[#647895] mb-2">
-                  Reset a player&apos;s code and team color so they can set a new one.
+                  Edit a player&apos;s name, or reset their code and team color so they can set a new one.
                 </p>
                 {players.map((p) => (
-                  <div
+                  <form
                     key={p.id}
-                    className="flex items-center justify-between rounded-lg border border-[#dce1e5] px-3 py-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      renamePlayer(p, e.currentTarget.elements.name.value);
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-[#dce1e5] px-3 py-2"
                   >
-                    <span className="font-medium text-[#071d49]">
-                      {p.name}
-                      {!p.code && (
-                        <span className="text-xs font-normal text-[#647895] ml-2">no code set</span>
-                      )}
-                    </span>
+                    <input
+                      name="name"
+                      type="text"
+                      defaultValue={p.name}
+                      maxLength={50}
+                      className="flex-1 min-w-0 rounded-md border border-[#dce1e5] bg-white px-2 py-1 text-sm font-medium text-[#071d49] focus:outline-none focus:ring-2 focus:ring-[#fc5b08]"
+                    />
+                    {!p.code && (
+                      <span className="text-xs font-normal text-[#647895] whitespace-nowrap">no code set</span>
+                    )}
+                    <button
+                      type="submit"
+                      className="text-xs font-semibold text-[#0e6137] hover:underline whitespace-nowrap"
+                    >
+                      Save
+                    </button>
                     <button
                       type="button"
                       onClick={() => resetPlayerCode(p)}
                       disabled={!p.code}
-                      className="text-xs font-semibold text-[#eb570c] hover:underline disabled:opacity-30 disabled:no-underline"
+                      className="text-xs font-semibold text-[#eb570c] hover:underline disabled:opacity-30 disabled:no-underline whitespace-nowrap"
                     >
                       Reset
                     </button>
-                  </div>
+                  </form>
                 ))}
               </div>
             )}
